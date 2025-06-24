@@ -11,7 +11,8 @@ from sqlalchemy.orm import Session
 import jwt
 import hashlib
 
-from backend.core import get_db, get_settings, FuenteWeb, LogScraping
+from backend.core import get_db, get_settings
+from backend.core.models import FuenteWeb, LogScraping
 
 router = APIRouter()
 settings = get_settings()

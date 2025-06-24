@@ -8,7 +8,8 @@ from datetime import datetime
 from typing import List, Dict, Optional
 from sqlalchemy.orm import Session
 
-from backend.core import get_db, FuenteWeb, LogScraping, Evento, get_settings
+from backend.core import get_db, get_settings
+from backend.core.models import FuenteWeb, LogScraping, Evento
 from .pipelines.langgraph_pipeline import ScrapingPipeline
 from .extractors.html_extractor import HTMLExtractor
 from .extractors.pdf_extractor import PDFExtractor
@@ -37,7 +38,8 @@ class ScrapingEngine:
         results = {"total_ejecutadas": 0, "exitosas": 0, "errores": 0, "detalles": []}
         
         # Obtener fuentes a procesar
-        with next(get_db()) as db:
+        db = next(get_db())
+        try:
             if fuente_id:
                 fuentes = db.query(FuenteWeb).filter(
                     FuenteWeb.id == fuente_id,
@@ -45,6 +47,8 @@ class ScrapingEngine:
                 ).all()
             else:
                 fuentes = db.query(FuenteWeb).filter(FuenteWeb.activa == True).all()
+        finally:
+            db.close()
         
         # Procesar cada fuente
         for fuente in fuentes:
@@ -65,7 +69,8 @@ class ScrapingEngine:
         inicio_tiempo = datetime.now()
         
         # Crear log de inicio
-        with next(get_db()) as db:
+        db = next(get_db())
+        try:
             log = LogScraping(
                 fuente_id=fuente.id,
                 fuente_nombre=fuente.nombre,
@@ -76,6 +81,8 @@ class ScrapingEngine:
             db.commit()
             db.refresh(log)
             log_id = log.id
+        finally:
+            db.close()
         
         try:
             # Ejecutar pipeline de extracción
@@ -120,7 +127,8 @@ class ScrapingEngine:
             error_msg = str(e)
             
             # Actualizar fuente con error
-            with next(get_db()) as db:
+            db = next(get_db())
+            try:
                 fuente.ultima_ejecucion = datetime.now()
                 fuente.ultimo_estado = "error"
                 fuente.ultimo_error = error_msg
@@ -130,6 +138,9 @@ class ScrapingEngine:
                     log_id, "error", {"nuevos": [], "actualizados": []}, 
                     tiempo_transcurrido, db, error_msg
                 )
+                db.commit()
+            finally:
+                db.close()
             
             return {
                 "fuente_id": fuente.id,

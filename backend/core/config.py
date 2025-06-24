@@ -24,15 +24,20 @@ class Settings(BaseSettings):
     secret_key: str = Field(..., min_length=32)
     admin_username: str = "admin"
     admin_password: str = Field(..., min_length=6)
+    jwt_algorithm: str = "HS256"
+    access_token_expire_minutes: int = 1440  # 24 horas
     
     # ============= APIS IA =============
     openai_api_key: str = Field(...)
     openai_model: str = "gpt-4o-mini"
+    anthropic_api_key: str = Field(default="")
+    anthropic_model: str = "claude-3-haiku-20240307"
     
     # ============= SCRAPING =============
     request_timeout: int = 30
     max_retries: int = 3
     playwright_headless: bool = True
+    playwright_timeout: int = 30000
     
     # ============= SCHEDULER =============
     scheduler_timezone: str = "Europe/Madrid"
