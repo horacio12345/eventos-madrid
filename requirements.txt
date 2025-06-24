@@ -1,0 +1,74 @@
+# =============================================================================
+# PROYECTO EVENTOS MAYORES =============================================================================
+
+# ============= CORE FRAMEWORK =============
+fastapi==0.115.6
+uvicorn[standard]==0.32.1
+pydantic==2.10.4
+pydantic-settings==2.6.1
+
+# ============= BASE DE DATOS =============
+sqlalchemy==2.0.36
+alembic==1.14.0
+sqlite3  # Incluido en Python standard library
+
+# ============= SCRAPING INTELIGENTE =============
+# LangChain ecosystem - Versiones más recientes verificadas
+langchain==0.3.26
+langchain-core==0.3.66
+langchain-community==0.3.26
+langchain-openai==0.3.24
+langchain-anthropic==0.3.16
+langgraph==0.4.8
+
+# Web scraping y automation
+playwright==1.52.0
+beautifulsoup4==4.12.3
+lxml==5.3.0
+requests==2.32.3
+httpx==0.28.1
+
+# PDF processing con Docling (IBM) - Más avanzado que PyPDF2
+docling==2.14.0
+docling-core==2.23.0
+docling-parse==4.0.5
+
+# OCR y procesamiento de imágenes
+pytesseract==0.3.13
+Pillow==11.0.0
+opencv-python==4.10.0.84
+
+# ============= SCHEDULER Y TAREAS =============
+apscheduler==3.10.4
+celery==5.4.0  # Para tareas asíncronas futuras
+redis==5.2.1   # Backend para Celery
+
+# ============= APIs DE IA =============
+openai==1.59.3
+anthropic==0.40.0
+
+# ============= UTILIDADES =============
+python-dotenv==1.0.1
+python-multipart==0.0.18  # Para FastAPI file uploads
+jinja2==3.1.5  # Templates
+aiofiles==24.1.0  # Async file operations
+
+# ============= TESTING =============
+pytest==8.3.4
+pytest-asyncio==0.24.0
+pytest-playwright==0.7.0
+httpx==0.28.1  # Para testing de APIs
+
+# ============= LOGGING Y MONITORING =============
+loguru==0.7.3
+prometheus-client==0.21.1  # Métricas para futuro
+
+# ============= DESARROLLO =============
+black==24.10.0  # Code formatting
+isort==5.13.2   # Import sorting
+flake8==7.1.1   # Linting
+mypy==1.14.0    # Type checking
+
+# ============= DEPLOYMENT =============
+gunicorn==23.0.0
+docker-compose  # Para containerización

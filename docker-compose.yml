@@ -1,0 +1,237 @@
+# docker-compose.yml
+
+# =============================================================================
+# PROYECTO EVENTOS MAYORES - Docker Compose para Desarrollo y Producción
+# =============================================================================
+
+version: '3.8'
+
+services:
+  # ============= BACKEND API =============
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: eventos_backend
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=development
+      - DATABASE_URL=sqlite:///./data/database.db
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - ./backend:/app/backend
+      - ./data:/app/data
+      - ./scripts:/app/scripts
+    depends_on:
+      - redis
+    restart: unless-stopped
+    networks:
+      - eventos_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ============= FRONTEND NEXT.JS =============
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: eventos_frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000/api
+      - NODE_ENV=development
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - eventos_network
+
+  # ============= REDIS (para Celery y caché) =============
+  redis:
+    image: redis:7-alpine
+    container_name: eventos_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    networks:
+      - eventos_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ============= WORKER CELERY (para tareas async) =============
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: eventos_worker
+    command: celery -A backend.services.scheduler worker --loglevel=info
+    environment:
+      - ENVIRONMENT=development
+      - DATABASE_URL=sqlite:///./data/database.db
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - ./backend:/app/backend
+      - ./data:/app/data
+    depends_on:
+      - redis
+      - backend
+    restart: unless-stopped
+    networks:
+      - eventos_network
+
+  # ============= SCHEDULER CELERY BEAT =============
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: eventos_scheduler
+    command: celery -A backend.services.scheduler beat --loglevel=info
+    environment:
+      - ENVIRONMENT=development
+      - DATABASE_URL=sqlite:///./data/database.db
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - ./backend:/app/backend
+      - ./data:/app/data
+    depends_on:
+      - redis
+      - backend
+    restart: unless-stopped
+    networks:
+      - eventos_network
+
+  # ============= PLAYWRIGHT para SCRAPING =============
+  playwright:
+    image: mcr.microsoft.com/playwright/python:v1.52.0-noble
+    container_name: eventos_playwright
+    volumes:
+      - ./backend:/app/backend
+      - ./data:/app/data
+    working_dir: /app
+    command: tail -f /dev/null  # Mantener contenedor vivo
+    environment:
+      - PYTHONPATH=/app
+    networks:
+      - eventos_network
+
+  # ============= NGINX (Reverse Proxy para Producción) =============
+  nginx:
+    image: nginx:alpine
+    container_name: eventos_nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - backend
+      - frontend
+    restart: unless-stopped
+    networks:
+      - eventos_network
+    profiles:
+      - production
+
+  # ============= POSTGRESQL (para Producción) =============
+  postgres:
+    image: postgres:15-alpine
+    container_name: eventos_postgres
+    environment:
+      POSTGRES_DB: eventos_db
+      POSTGRES_USER: eventos_user
+      POSTGRES_PASSWORD: eventos_password_change_in_production
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init_postgres.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    networks:
+      - eventos_network
+    profiles:
+      - production
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U eventos_user -d eventos_db"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ============= MONITORING (FUTURO) =============
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: eventos_prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+    restart: unless-stopped
+    networks:
+      - eventos_network
+    profiles:
+      - monitoring
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: eventos_grafana
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+    restart: unless-stopped
+    networks:
+      - eventos_network
+    profiles:
+      - monitoring
+
+# ============= VOLÚMENES =============
+volumes:
+  redis_data:
+  postgres_data:
+  grafana_data:
+
+# ============= REDES =============
+networks:
+  eventos_network:
+    driver: bridge
+
+# =============================================================================
+# COMANDOS ÚTILES:
+#
+# Desarrollo:
+# docker-compose up -d backend frontend redis
+#
+# Producción:
+# docker-compose --profile production up -d
+#
+# Con monitoring:
+# docker-compose --profile production --profile monitoring up -d
+#
+# Logs:
+# docker-compose logs -f backend
+#
+# Rebuild:
+# docker-compose build --no-cache
+#
+# Cleanup:
+# docker-compose down -v
+# =============================================================================

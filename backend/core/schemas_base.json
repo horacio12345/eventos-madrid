@@ -1,0 +1,132 @@
+{
+    "templates": {
+      "html_source": {
+        "schema_extraccion": {
+          "campos": {
+            "titulo": {
+              "selector": ".evento-titulo",
+              "tipo": "text",
+              "requerido": true
+            },
+            "fecha": {
+              "selector": ".evento-fecha", 
+              "tipo": "date",
+              "formato": "%d/%m/%Y",
+              "requerido": true
+            },
+            "precio": {
+              "selector": ".evento-precio",
+              "tipo": "text",
+              "default": "Gratis"
+            },
+            "ubicacion": {
+              "selector": ".evento-lugar",
+              "tipo": "text"
+            },
+            "descripcion": {
+              "selector": ".evento-descripcion",
+              "tipo": "text"
+            }
+          },
+          "filtros": {
+            "precio_maximo": 15,
+            "palabras_clave": ["mayores", "senior", "tercera edad"],
+            "excluir_palabras": ["niños", "infantil", "bebé"]
+          }
+        },
+        "mapeo_campos": {
+          "titulo": "titulo",
+          "fecha": "fecha_inicio", 
+          "precio": "precio",
+          "ubicacion": "ubicacion",
+          "descripcion": "descripcion"
+        },
+        "configuracion_scraping": {
+          "wait_for_selector": ".eventos-container",
+          "scroll_to_bottom": false,
+          "timeout": 30000,
+          "headers": {
+            "User-Agent": "Mozilla/5.0 (compatible; EventBot/1.0)"
+          }
+        }
+      },
+      
+      "pdf_source": {
+        "schema_extraccion": {
+          "campos": {
+            "titulo": {
+              "pattern": "(?i)^(.+?)(?=\\s*-\\s*\\d|\\s*\\.|$)",
+              "tipo": "text",
+              "requerido": true
+            },
+            "fecha": {
+              "pattern": "\\d{1,2}[/-]\\d{1,2}[/-]\\d{4}",
+              "tipo": "date",
+              "formato": "%d/%m/%Y",
+              "requerido": true
+            },
+            "precio": {
+              "pattern": "(?:gratis|gratuito|\\d+[€\\s]*euros?)",
+              "tipo": "text",
+              "default": "Gratis"
+            }
+          },
+          "filtros": {
+            "precio_maximo": 15,
+            "palabras_clave": ["mayores", "senior"]
+          }
+        },
+        "mapeo_campos": {
+          "titulo": "titulo",
+          "fecha": "fecha_inicio",
+          "precio": "precio"
+        },
+        "configuracion_scraping": {
+          "ocr_enabled": true,
+          "language": "spa",
+          "dpi": 300
+        }
+      }
+    },
+  
+    "categorias": [
+      {
+        "nombre": "Cultura",
+        "emoji": "🎭",
+        "palabras_clave": ["teatro", "música", "concierto", "museo", "exposición", "cultura"]
+      },
+      {
+        "nombre": "Deporte y Salud", 
+        "emoji": "🏃",
+        "palabras_clave": ["deporte", "gimnasia", "caminar", "salud", "ejercicio", "fisico"]
+      },
+      {
+        "nombre": "Formación",
+        "emoji": "📚", 
+        "palabras_clave": ["taller", "curso", "charla", "conferencia", "formación", "aprender"]
+      },
+      {
+        "nombre": "Cine",
+        "emoji": "🎬",
+        "palabras_clave": ["cine", "película", "film", "documental", "proyección"]
+      },
+      {
+        "nombre": "Paseos y Excursiones",
+        "emoji": "🚶",
+        "palabras_clave": ["paseo", "excursión", "visita", "ruta", "senderismo", "parque"]
+      },
+      {
+        "nombre": "Ocio y Social",
+        "emoji": "🎉",
+        "palabras_clave": ["fiesta", "encuentro", "social", "baile", "juegos", "tertulia"]
+      }
+    ],
+  
+    "configuracion_global": {
+      "precio_maximo_defecto": 15,
+      "timeout_defecto": 30,
+      "reintentos_defecto": 3,
+      "user_agent_defecto": "Mozilla/5.0 (compatible; EventBot/1.0)",
+      "frecuencia_defecto": "0 9 * * 1"
+    }
+  }
