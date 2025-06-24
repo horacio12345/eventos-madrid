@@ -1,4 +1,4 @@
-# core/database.py
+# backend/core/database.py
 
 """
 Configuración de base de datos SQLite con SQLAlchemy 2.0

@@ -1,4 +1,4 @@
-# core/__init__.py
+# backend/core/__init__.py
 
 """
 Módulo core - Configuración base del proyecto

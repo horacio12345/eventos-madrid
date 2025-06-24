@@ -1,4 +1,4 @@
-# core/models.py
+# backend/core/models.py
 
 """
 Modelos SQLAlchemy para el proyecto

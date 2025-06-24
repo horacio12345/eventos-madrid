@@ -1,4 +1,4 @@
-# api/main.py
+# backend/api/main.py
 
 """
 Aplicación principal FastAPI

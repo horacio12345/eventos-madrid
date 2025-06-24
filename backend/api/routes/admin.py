@@ -1,4 +1,4 @@
-# api/routes/admin.py
+# backend/api/routes/admin.py
 
 """
 Endpoints de administración con autenticación

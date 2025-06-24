@@ -1,4 +1,4 @@
-# core/config.py
+# backend/core/config.py
 
 """
 Configuración global del proyecto usando Pydantic Settings

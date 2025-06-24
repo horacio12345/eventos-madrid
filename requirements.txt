@@ -72,3 +72,8 @@ mypy==1.14.0    # Type checking
 # ============= DEPLOYMENT =============
 gunicorn==23.0.0
 docker-compose  # Para containerización
+
+
+# ============= JWT Authentication =============
+PyJWT==2.10.1
+python-multipart==0.0.18

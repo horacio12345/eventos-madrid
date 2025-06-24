@@ -1,4 +1,4 @@
-# api/routes/eventos.py
+# backend/api/routes/eventos.py
 
 """
 Endpoints públicos de eventos
