@@ -1,0 +1,26 @@
+{
+    "name": "Eventos Mayores Madrid",
+    "short_name": "Eventos Mayores",
+    "description": "Descubre eventos gratuitos y de bajo coste para personas mayores en la Comunidad de Madrid",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#0ea5e9",
+    "orientation": "portrait-primary",
+    "icons": [
+      {
+        "src": "/icon-192x192.png",
+        "sizes": "192x192",
+        "type": "image/png",
+        "purpose": "maskable any"
+      },
+      {
+        "src": "/icon-512x512.png",
+        "sizes": "512x512",
+        "type": "image/png",
+        "purpose": "maskable any"
+      }
+    ],
+    "categories": ["lifestyle", "productivity", "social"],
+    "lang": "es-ES"
+  }

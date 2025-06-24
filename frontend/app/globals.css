@@ -1,0 +1,418 @@
+/* app/globals.css */
+
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+/* ============= VARIABLES CSS PERSONALIZADAS ============= */
+:root {
+  --font-inter: 'Inter', system-ui, -apple-system, sans-serif;
+  
+  /* Colores personalizados para accesibilidad */
+  --color-text-primary: #1f2937;
+  --color-text-secondary: #6b7280;
+  --color-text-muted: #9ca3af;
+  
+  --color-bg-primary: #ffffff;
+  --color-bg-secondary: #f9fafb;
+  --color-bg-muted: #f3f4f6;
+  
+  --color-border: #e5e7eb;
+  --color-border-strong: #d1d5db;
+  
+  /* Sombras */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  
+  /* Animaciones */
+  --transition-fast: 150ms ease-in-out;
+  --transition-normal: 300ms ease-in-out;
+  --transition-slow: 500ms ease-in-out;
+}
+
+/* ============= RESET PERSONALIZADO ============= */
+
+/* Mejorar legibilidad para personas mayores */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  /* Tamaño base más grande para mejor legibilidad */
+  font-size: 16px;
+}
+
+@media (min-width: 1024px) {
+  html {
+    font-size: 17px;
+  }
+}
+
+@media (min-width: 1280px) {
+  html {
+    font-size: 18px;
+  }
+}
+
+body {
+  font-family: var(--font-inter);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* ============= COMPONENTES BASE ============= */
+
+/* Botones accesibles */
+.btn {
+  @apply inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-lg transition-all duration-200 focus-ring disabled:opacity-50 disabled:cursor-not-allowed;
+  min-height: 44px; /* Tamaño mínimo para touch */
+}
+
+.btn-primary {
+  @apply bg-primary-600 text-white hover:bg-primary-700 active:bg-primary-800;
+}
+
+.btn-secondary {
+  @apply bg-gray-200 text-gray-900 hover:bg-gray-300 active:bg-gray-400;
+}
+
+.btn-outline {
+  @apply border-gray-300 text-gray-700 bg-white hover:bg-gray-50 active:bg-gray-100;
+}
+
+.btn-danger {
+  @apply bg-red-600 text-white hover:bg-red-700 active:bg-red-800;
+}
+
+.btn-lg {
+  @apply px-8 py-4 text-lg;
+  min-height: 52px;
+}
+
+.btn-sm {
+  @apply px-4 py-2 text-sm;
+  min-height: 36px;
+}
+
+/* Cards */
+.card {
+  @apply bg-white rounded-xl shadow-card p-6 border border-gray-100 transition-shadow duration-200;
+}
+
+.card:hover {
+  @apply shadow-lg;
+}
+
+.card-header {
+  @apply pb-4 mb-4 border-b border-gray-100;
+}
+
+.card-title {
+  @apply text-xl font-semibold text-gray-900 leading-tight;
+}
+
+.card-subtitle {
+  @apply text-sm text-gray-600 mt-1;
+}
+
+/* Inputs accesibles */
+.input {
+  @apply w-full px-4 py-3 border border-gray-300 rounded-lg text-base placeholder-gray-500 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors duration-200;
+  min-height: 44px;
+}
+
+.input:invalid {
+  @apply border-red-300 focus:ring-red-500 focus:border-red-500;
+}
+
+.input-error {
+  @apply border-red-300 focus:ring-red-500 focus:border-red-500;
+}
+
+.label {
+  @apply block text-sm font-medium text-gray-700 mb-2;
+}
+
+.error-message {
+  @apply text-sm text-red-600 mt-1;
+}
+
+/* Select personalizado */
+.select {
+  @apply input appearance-none bg-white cursor-pointer;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.75rem center;
+  background-repeat: no-repeat;
+  background-size: 1.5em 1.5em;
+  padding-right: 2.5rem;
+}
+
+/* ============= UTILIDADES DE ACCESIBILIDAD ============= */
+
+/* Focus ring visible y accesible */
+.focus-ring {
+  @apply focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2;
+}
+
+.focus-ring-inset {
+  @apply focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-inset;
+}
+
+/* Screen reader only */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.sr-only:focus {
+  position: static;
+  width: auto;
+  height: auto;
+  padding: inherit;
+  margin: inherit;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+}
+
+/* ============= ANIMACIONES ============= */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.3s ease-out;
+}
+
+.animate-slide-down {
+  animation: slideDown 0.3s ease-out;
+}
+
+.animate-pulse-gentle {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+/* ============= ESTILOS PARA PERSONAS MAYORES ============= */
+
+/* Texto más grande y legible */
+.text-readable {
+  @apply text-lg leading-relaxed;
+  font-weight: 450; /* Ligeramente más bold que normal */
+}
+
+.text-large {
+  @apply text-xl leading-relaxed;
+}
+
+.text-xl-readable {
+  @apply text-2xl leading-relaxed font-medium;
+}
+
+/* Enlaces más visibles */
+.link {
+  @apply text-primary-600 underline hover:text-primary-800 focus:text-primary-800 transition-colors duration-200;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 2px;
+}
+
+.link:hover,
+.link:focus {
+  text-decoration-thickness: 3px;
+}
+
+/* Badges/Tags para categorías */
+.badge {
+  @apply inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border;
+}
+
+.badge-lg {
+  @apply px-4 py-2 text-base;
+}
+
+/* Estados de elementos */
+.state-loading {
+  @apply opacity-50 pointer-events-none;
+}
+
+.state-disabled {
+  @apply opacity-60 pointer-events-none grayscale;
+}
+
+.state-success {
+  @apply bg-green-50 border-green-200 text-green-800;
+}
+
+.state-warning {
+  @apply bg-yellow-50 border-yellow-200 text-yellow-800;
+}
+
+.state-error {
+  @apply bg-red-50 border-red-200 text-red-800;
+}
+
+.state-info {
+  @apply bg-blue-50 border-blue-200 text-blue-800;
+}
+
+/* ============= LAYOUT HELPERS ============= */
+
+.container-narrow {
+  @apply max-w-4xl mx-auto px-4;
+}
+
+.container-wide {
+  @apply max-w-7xl mx-auto px-4;
+}
+
+.section-padding {
+  @apply py-12;
+}
+
+@media (min-width: 768px) {
+  .section-padding {
+    @apply py-16;
+  }
+}
+
+@media (min-width: 1024px) {
+  .section-padding {
+    @apply py-20;
+  }
+}
+
+/* Grid responsive para cards */
+.grid-cards {
+  @apply grid gap-6;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+}
+
+@media (min-width: 768px) {
+  .grid-cards {
+    @apply gap-8;
+    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  }
+}
+
+/* ============= PRINT STYLES ============= */
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  body {
+    color: black !important;
+    background: white !important;
+  }
+  
+  .card {
+    border: 1px solid #ccc !important;
+    box-shadow: none !important;
+    break-inside: avoid;
+  }
+  
+  a[href^="http"]:after {
+    content: " (" attr(href) ")";
+    font-size: 0.8em;
+    color: #666;
+  }
+}
+
+/* ============= MODO OSCURO (FUTURO) ============= */
+
+@media (prefers-color-scheme: dark) {
+  /* Variables para modo oscuro si se implementa en el futuro */
+  :root {
+    --color-text-primary: #f9fafb;
+    --color-text-secondary: #d1d5db;
+    --color-text-muted: #9ca3af;
+    
+    --color-bg-primary: #1f2937;
+    --color-bg-secondary: #111827;
+    --color-bg-muted: #374151;
+    
+    --color-border: #374151;
+    --color-border-strong: #4b5563;
+  }
+}
+
+/* Scrollbar personalizada */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Selection personalizada */
+::selection {
+  background-color: theme('colors.primary.100');
+  color: theme('colors.primary.900');
+}
+
+::-moz-selection {
+  background-color: theme('colors.primary.100');
+  color: theme('colors.primary.900');
+}
