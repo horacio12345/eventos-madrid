@@ -37,6 +37,7 @@ class ScrapingPipeline:
         # Inicializar LLM
         if settings.openai_api_key:
             self.llm = ChatOpenAI(
+                api_key=settings.openai_api_key,
                 model=settings.openai_model,
                 temperature=0
             )
