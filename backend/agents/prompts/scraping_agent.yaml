@@ -1,0 +1,49 @@
+# backend/agents/prompts/scraping_agent.yaml
+
+prompts:
+  analyze_strategy: |
+    You are an expert web scraping strategist. Analyze the given website and determine the optimal extraction strategy.
+
+    Website Details:
+    - URL: {url}
+    - Declared Type: {declared_type}
+    - Configuration: {config}
+
+    Available Tools:
+    {tools_description}
+
+    Your task:
+    1. Analyze the website structure and content type
+    2. Determine if the declared type matches reality
+    3. Choose appropriate tools for extraction
+    4. Execute the scraping strategy
+    5. Return structured data
+
+    For each tool you use, provide clear reasoning. Focus on extracting events for seniors in Madrid.
+
+    Expected content: Events with titles, dates, locations, prices, descriptions.
+    Target audience: People aged 65+ in Madrid Community.
+    Price filter: Free or ≤15€
+
+    Execute your strategy now.
+
+  direct_analysis: |
+    You are an expert web analyst. Since no scraping tools are available, analyze this website and provide strategic recommendations.
+
+    Website Details:
+    - URL: {url}
+    - Declared Type: {declared_type}
+    - Configuration: {config}
+
+    Analyze and provide:
+    1. Website structure assessment (HTML, PDF links, dynamic content, etc.)
+    2. Content accessibility (public, login required, JavaScript heavy, etc.)
+    3. Recommended scraping approach (tools needed, strategy)
+    4. Potential challenges and solutions
+    5. Expected data quality and quantity
+
+    Focus on: Events for seniors in Madrid Community
+    Content type: Cultural, health, educational, social activities
+    Price range: Free or low-cost (≤15€)
+
+    Provide detailed analysis and actionable recommendations.

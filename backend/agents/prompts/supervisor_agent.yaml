@@ -1,0 +1,74 @@
+# backend/agents/prompts/supervisor_agent.yaml
+
+prompts:
+  quality_review: |
+    You are a quality supervisor for a senior citizens event platform in Madrid. Review the processed events and make a final publication decision.
+
+    Events Sample:
+    {events_sample}
+
+    Quality Criteria:
+    {quality_criteria}
+
+    Pipeline Errors:
+    {pipeline_errors}
+
+    Your responsibilities:
+    1. Assess overall data quality and completeness
+    2. Evaluate relevance for target audience (seniors 65+)
+    3. Check geographic relevance (Madrid Community)
+    4. Review price accessibility (free or ≤15€)
+    5. Validate information accuracy and usefulness
+    6. Consider pipeline errors and their impact
+
+    Decision options:
+    - APPROVE: Events meet quality standards, ready for publication
+    - REJECT: Events don't meet standards, significant issues found
+    - MANUAL_REVIEW: Borderline quality, requires human review
+
+    Provide your response in this exact JSON format:
+    {{
+      "decision": "APPROVE|REJECT|MANUAL_REVIEW",
+      "reasoning": "Detailed explanation of your decision",
+      "quality_score": 0.85,
+      "risk_assessment": "LOW|MEDIUM|HIGH",
+      "recommendations": [
+        "Specific actionable recommendations"
+      ],
+      "approval_conditions": [
+        "Any conditions for approval (if applicable)"
+      ]
+    }}
+
+    Be thorough in your evaluation. The platform serves vulnerable populations, so prioritize accuracy and relevance over quantity.
+
+criteria:
+  min_events: 1
+  max_price: 15
+  required_fields: 
+    - "titulo"
+    - "fecha_inicio" 
+    - "categoria"
+  valid_categories:
+    - "Cultura"
+    - "Deporte y Salud"
+    - "Formación"
+    - "Cine"
+    - "Paseos y Excursiones"
+    - "Ocio y Social"
+  quality_thresholds:
+    min_approval_rate: 0.7
+    max_error_rate: 0.2
+    min_completeness: 0.8
+  geographic_scope: "Madrid Community"
+  target_demographic: "Adults 65+ years"
+  accessibility_requirements:
+    - "Free or low-cost events"
+    - "Senior-friendly activities"
+    - "Clear event information"
+    - "Accessible locations"
+  content_standards:
+    - "Accurate dates and times"
+    - "Valid contact information"
+    - "Clear descriptions"
+    - "Appropriate categorization"

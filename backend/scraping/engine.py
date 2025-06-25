@@ -1,7 +1,7 @@
 # backend/scraping/engine.py
 
 """
-Motor principal de scraping - Orquestador de extracción
+Intelligent scraping engine - Orchestrates extraction using AI agents
 """
 import asyncio
 from datetime import datetime
@@ -10,34 +10,34 @@ from sqlalchemy.orm import Session
 
 from backend.core import get_db, get_settings
 from backend.core.models import FuenteWeb, LogScraping, Evento
-from .pipelines.langgraph_pipeline import ScrapingPipeline
-from .extractors.html_extractor import HTMLExtractor
-from .extractors.pdf_extractor import PDFExtractor
-from .extractors.image_extractor import ImageExtractor
+from backend.agents import ScrapingOrchestrator
+from backend.tools import ALL_TOOLS
+from backend.states import create_initial_state, update_state_with_agent_result, finalize_pipeline_state
 
 settings = get_settings()
 
 
 class ScrapingEngine:
     """
-    Motor principal de scraping que coordina la extracción de todas las fuentes
+    Intelligent scraping engine that coordinates extraction using AI agents and modular tools
     """
     
     def __init__(self):
-        self.pipeline = ScrapingPipeline()
-        self.extractors = {
-            "HTML": HTMLExtractor(),
-            "PDF": PDFExtractor(),
-            "IMAGE": ImageExtractor()
-        }
+        # Initialize orchestrator with all available tools
+        self.orchestrator = ScrapingOrchestrator(scraping_tools=ALL_TOOLS)
+        
+        # Validate orchestrator configuration
+        config_status = self.orchestrator.validate_configuration()
+        if not all(config_status.values()):
+            raise RuntimeError(f"Orchestrator configuration invalid: {config_status}")
     
     async def execute_scraping(self, fuente_id: Optional[int] = None) -> Dict:
         """
-        Ejecutar scraping para una fuente específica o todas las activas
+        Execute scraping for specific source or all active sources
         """
         results = {"total_ejecutadas": 0, "exitosas": 0, "errores": 0, "detalles": []}
         
-        # Obtener fuentes a procesar
+        # Get sources to process
         db = next(get_db())
         try:
             if fuente_id:
@@ -50,7 +50,7 @@ class ScrapingEngine:
         finally:
             db.close()
         
-        # Procesar cada fuente
+        # Process each source
         for fuente in fuentes:
             resultado = await self._procesar_fuente(fuente)
             results["total_ejecutadas"] += 1
@@ -64,11 +64,11 @@ class ScrapingEngine:
     
     async def _procesar_fuente(self, fuente: FuenteWeb) -> Dict:
         """
-        Procesar una fuente individual
+        Process individual source using intelligent agent pipeline
         """
         inicio_tiempo = datetime.now()
         
-        # Crear log de inicio
+        # Create execution log
         db = next(get_db())
         try:
             log = LogScraping(
@@ -85,31 +85,45 @@ class ScrapingEngine:
             db.close()
         
         try:
-            # Ejecutar pipeline de extracción
-            resultado = await self.pipeline.run(
+            # Create initial pipeline state
+            execution_id = f"exec_{fuente.id}_{int(inicio_tiempo.timestamp())}"
+            
+            # Execute intelligent agent pipeline
+            final_state = await self.orchestrator.execute_scraping_pipeline(
                 url=fuente.url,
                 tipo=fuente.tipo,
-                schema_extraccion=fuente.schema_extraccion,
-                mapeo_campos=fuente.mapeo_campos,
-                configuracion_scraping=fuente.configuracion_scraping
+                schema_extraccion=fuente.schema_extraccion or {},
+                mapeo_campos=fuente.mapeo_campos or {},
+                configuracion_scraping=fuente.configuracion_scraping or {}
             )
             
-            # Procesar eventos extraídos
-            eventos_procesados = await self._procesar_eventos(
-                resultado["eventos"],
-                fuente,
-                db
-            )
+            # Process extracted events if approved
+            if final_state["supervision_decision"] == "APPROVED":
+                eventos_procesados = await self._procesar_eventos(
+                    final_state["approved_events"],
+                    fuente
+                )
+            else:
+                eventos_procesados = {"nuevos": [], "actualizados": []}
             
-            # Actualizar fuente
-            fuente.ultima_ejecucion = datetime.now()
-            fuente.ultimo_estado = "success"
-            fuente.eventos_encontrados_ultima_ejecucion = len(eventos_procesados["nuevos"]) + len(eventos_procesados["actualizados"])
+            # Update source status
+            db = next(get_db())
+            try:
+                fuente_db = db.query(FuenteWeb).filter(FuenteWeb.id == fuente.id).first()
+                if fuente_db:
+                    fuente_db.ultima_ejecucion = datetime.now()
+                    fuente_db.ultimo_estado = "success"
+                    fuente_db.eventos_encontrados_ultima_ejecucion = (
+                        len(eventos_procesados["nuevos"]) + len(eventos_procesados["actualizados"])
+                    )
+                    db.commit()
+            finally:
+                db.close()
             
-            # Finalizar log exitoso
+            # Finalize log
             tiempo_transcurrido = (datetime.now() - inicio_tiempo).total_seconds()
             self._finalizar_log(
-                log_id, "success", eventos_procesados, tiempo_transcurrido, db
+                log_id, "success", eventos_procesados, tiempo_transcurrido, final_state
             )
             
             return {
@@ -118,27 +132,32 @@ class ScrapingEngine:
                 "estado": "success",
                 "eventos_nuevos": len(eventos_procesados["nuevos"]),
                 "eventos_actualizados": len(eventos_procesados["actualizados"]),
-                "tiempo_segundos": tiempo_transcurrido
+                "tiempo_segundos": tiempo_transcurrido,
+                "pipeline_decision": final_state["supervision_decision"],
+                "quality_score": final_state["validation_results"]["quality_score"],
+                "agent_strategy": final_state["scraping_strategy"]
             }
             
         except Exception as e:
-            # Manejar error
+            # Handle errors
             tiempo_transcurrido = (datetime.now() - inicio_tiempo).total_seconds()
             error_msg = str(e)
             
-            # Actualizar fuente con error
+            # Update source with error
             db = next(get_db())
             try:
-                fuente.ultima_ejecucion = datetime.now()
-                fuente.ultimo_estado = "error"
-                fuente.ultimo_error = error_msg
+                fuente_db = db.query(FuenteWeb).filter(FuenteWeb.id == fuente.id).first()
+                if fuente_db:
+                    fuente_db.ultima_ejecucion = datetime.now()
+                    fuente_db.ultimo_estado = "error"
+                    fuente_db.ultimo_error = error_msg
+                    db.commit()
                 
-                # Finalizar log con error
+                # Finalize log with error
                 self._finalizar_log(
                     log_id, "error", {"nuevos": [], "actualizados": []}, 
-                    tiempo_transcurrido, db, error_msg
+                    tiempo_transcurrido, None, error_msg
                 )
-                db.commit()
             finally:
                 db.close()
             
@@ -150,34 +169,38 @@ class ScrapingEngine:
                 "tiempo_segundos": tiempo_transcurrido
             }
     
-    async def _procesar_eventos(self, eventos_raw: List[Dict], fuente: FuenteWeb, db: Session) -> Dict:
+    async def _procesar_eventos(self, eventos_raw: List[Dict], fuente: FuenteWeb) -> Dict:
         """
-        Procesar eventos extraídos y guardar en base de datos
+        Process extracted events and save to database
         """
         eventos_nuevos = []
         eventos_actualizados = []
         
-        for evento_data in eventos_raw:
-            # Generar hash para detectar duplicados
-            contenido_hash = self._generar_hash_evento(evento_data)
+        db = next(get_db())
+        try:
+            for evento_data in eventos_raw:
+                # Generate hash for duplicate detection
+                contenido_hash = self._generar_hash_evento(evento_data)
+                
+                # Find existing event
+                evento_existente = db.query(Evento).filter(
+                    Evento.hash_contenido == contenido_hash,
+                    Evento.fuente_id == fuente.id
+                ).first()
+                
+                if evento_existente:
+                    # Update existing event
+                    self._actualizar_evento(evento_existente, evento_data)
+                    eventos_actualizados.append(evento_existente)
+                else:
+                    # Create new event
+                    nuevo_evento = self._crear_evento(evento_data, fuente, contenido_hash)
+                    db.add(nuevo_evento)
+                    eventos_nuevos.append(nuevo_evento)
             
-            # Buscar evento existente
-            evento_existente = db.query(Evento).filter(
-                Evento.hash_contenido == contenido_hash,
-                Evento.fuente_id == fuente.id
-            ).first()
-            
-            if evento_existente:
-                # Actualizar evento existente
-                self._actualizar_evento(evento_existente, evento_data)
-                eventos_actualizados.append(evento_existente)
-            else:
-                # Crear nuevo evento
-                nuevo_evento = self._crear_evento(evento_data, fuente, contenido_hash)
-                db.add(nuevo_evento)
-                eventos_nuevos.append(nuevo_evento)
-        
-        db.commit()
+            db.commit()
+        finally:
+            db.close()
         
         return {
             "nuevos": eventos_nuevos,
@@ -186,17 +209,17 @@ class ScrapingEngine:
     
     def _generar_hash_evento(self, evento_data: Dict) -> str:
         """
-        Generar hash único para un evento basado en contenido clave
+        Generate unique hash for event based on key content
         """
         import hashlib
         
-        # Usar campos clave para generar hash
+        # Use key fields to generate hash
         contenido_clave = f"{evento_data.get('titulo', '')}{evento_data.get('fecha_inicio', '')}{evento_data.get('ubicacion', '')}"
         return hashlib.sha256(contenido_clave.encode()).hexdigest()
     
     def _crear_evento(self, evento_data: Dict, fuente: FuenteWeb, hash_contenido: str) -> Evento:
         """
-        Crear nuevo evento desde datos extraídos
+        Create new event from extracted data
         """
         return Evento(
             titulo=evento_data.get("titulo"),
@@ -216,7 +239,7 @@ class ScrapingEngine:
     
     def _actualizar_evento(self, evento: Evento, evento_data: Dict) -> None:
         """
-        Actualizar evento existente con nuevos datos
+        Update existing event with new data
         """
         evento.titulo = evento_data.get("titulo", evento.titulo)
         evento.precio = evento_data.get("precio", evento.precio)
@@ -227,28 +250,42 @@ class ScrapingEngine:
         evento.ultima_actualizacion = datetime.now()
     
     def _finalizar_log(self, log_id: int, estado: str, eventos: Dict, 
-                      tiempo_segundos: float, db: Session, error: str = None) -> None:
+                      tiempo_segundos: float, pipeline_state: Optional[Dict] = None, error: str = None) -> None:
         """
-        Finalizar log de scraping
+        Finalize scraping log with results
         """
-        log = db.query(LogScraping).filter(LogScraping.id == log_id).first()
-        if log:
-            log.fecha_fin = datetime.now()
-            log.estado = estado
-            log.eventos_extraidos = len(eventos["nuevos"]) + len(eventos["actualizados"])
-            log.eventos_nuevos = len(eventos["nuevos"])
-            log.eventos_actualizados = len(eventos["actualizados"])
-            log.tiempo_ejecucion_segundos = int(tiempo_segundos)
-            if error:
-                log.detalles_error = error
-            db.commit()
+        db = next(get_db())
+        try:
+            log = db.query(LogScraping).filter(LogScraping.id == log_id).first()
+            if log:
+                log.fecha_fin = datetime.now()
+                log.estado = estado
+                log.eventos_extraidos = len(eventos["nuevos"]) + len(eventos["actualizados"])
+                log.eventos_nuevos = len(eventos["nuevos"])
+                log.eventos_actualizados = len(eventos["actualizados"])
+                log.tiempo_ejecucion_segundos = int(tiempo_segundos)
+                
+                if error:
+                    log.detalles_error = error
+                elif pipeline_state:
+                    # Add pipeline insights to log message
+                    log.mensaje = (
+                        f"Decision: {pipeline_state.get('supervision_decision', 'N/A')}, "
+                        f"Strategy: {pipeline_state.get('scraping_strategy', 'N/A')}, "
+                        f"Quality: {pipeline_state.get('validation_results', {}).get('quality_score', 0):.2f}"
+                    )
+                
+                db.commit()
+        finally:
+            db.close()
     
     async def test_fuente(self, configuracion_test: Dict) -> Dict:
         """
-        Testear una configuración de fuente sin guardar datos
+        Test source configuration without saving data
         """
         try:
-            resultado = await self.pipeline.run(
+            # Execute intelligent agent pipeline for testing
+            final_state = await self.orchestrator.execute_scraping_pipeline(
                 url=configuracion_test["url"],
                 tipo=configuracion_test["tipo"],
                 schema_extraccion=configuracion_test.get("schema_extraccion", {}),
@@ -256,12 +293,35 @@ class ScrapingEngine:
                 configuracion_scraping=configuracion_test.get("configuracion_scraping", {})
             )
             
+            # Prepare response in expected format
+            if final_state["supervision_decision"] == "APPROVED":
+                eventos_preview = final_state["approved_events"][:3]
+                estado = "success"
+                errores = []
+            elif final_state["supervision_decision"] == "ERROR":
+                eventos_preview = []
+                estado = "error"
+                errores = final_state["pipeline_errors"]
+            else:
+                eventos_preview = final_state["approved_events"][:3]
+                estado = "warning"
+                errores = [f"Decision: {final_state['supervision_decision']} - {final_state['decision_reasoning']}"]
+            
             return {
-                "estado": "success",
-                "eventos_encontrados": len(resultado["eventos"]),
-                "preview_eventos": resultado["eventos"][:3],  # Solo primeros 3
-                "tiempo_ejecucion": resultado.get("tiempo_ejecucion", 0),
-                "errores": []
+                "estado": estado,
+                "eventos_encontrados": len(final_state["approved_events"]),
+                "preview_eventos": eventos_preview,
+                "tiempo_ejecucion": final_state.get("total_duration_seconds", 0),
+                "errores": errores,
+                "pipeline_decision": final_state["supervision_decision"],
+                "decision_reasoning": final_state["decision_reasoning"],
+                "quality_score": final_state["validation_results"]["quality_score"],
+                "scraping_strategy": final_state["scraping_strategy"],
+                "agent_metadata": {
+                    "tools_used": final_state.get("scraping_tools_used", []),
+                    "analysis_result": final_state.get("web_analysis_result", {}),
+                    "validation_metrics": final_state["validation_results"]
+                }
             }
             
         except Exception as e:
@@ -270,5 +330,25 @@ class ScrapingEngine:
                 "error": str(e),
                 "eventos_encontrados": 0,
                 "preview_eventos": [],
-                "errores": [str(e)]
+                "errores": [str(e)],
+                "pipeline_decision": "ERROR",
+                "decision_reasoning": f"Pipeline execution failed: {str(e)}",
+                "quality_score": 0.0,
+                "scraping_strategy": "failed",
+                "agent_metadata": {}
             }
+    
+    def get_orchestrator_status(self) -> Dict:
+        """
+        Get orchestrator configuration and status
+        """
+        return {
+            "configuration_valid": self.orchestrator.validate_configuration(),
+            "available_tools": self.orchestrator.get_available_tools(),
+            "agents_ready": {
+                "scraping_agent": self.orchestrator.scraping_agent is not None,
+                "processing_agent": self.orchestrator.processing_agent is not None,
+                "supervisor_agent": self.orchestrator.supervisor_agent is not None
+            },
+            "total_tools": len(ALL_TOOLS)
+        }
