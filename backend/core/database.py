@@ -4,7 +4,7 @@
 Configuración de base de datos SQLite con SQLAlchemy 2.0
 """
 from sqlalchemy import create_engine
-from sqlalchemy.orm import declarative_base, sessionmaker, Session
+from sqlalchemy.orm import Session, declarative_base, sessionmaker
 
 from .config import get_settings
 
@@ -14,15 +14,11 @@ settings = get_settings()
 engine = create_engine(
     settings.database_url,
     echo=settings.debug,  # Mostrar SQL en desarrollo
-    pool_pre_ping=True,   # Verificar conexión antes de usar
+    pool_pre_ping=True,  # Verificar conexión antes de usar
 )
 
 # ============= SESSION FACTORY =============
-SessionLocal = sessionmaker(
-    autocommit=False,
-    autoflush=False,
-    bind=engine
-)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # ============= BASE PARA MODELOS =============
 Base = declarative_base()

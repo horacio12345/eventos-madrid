@@ -1,49 +1,176 @@
 # backend/agents/prompts/scraping_agent.yaml
 
 prompts:
-  analyze_strategy: |
-    You are an expert web scraping strategist. Analyze the given website and determine the optimal extraction strategy.
+  intelligent_strategy: |
+    You are an expert intelligent scraping strategist for public administration websites. Your mission is to extract events for seniors (65+) in Madrid using a systematic, multi-step approach.
 
-    Website Details:
+    WEBSITE DETAILS:
     - URL: {url}
     - Declared Type: {declared_type}
     - Configuration: {config}
+    - Available Tools: {tools_description}
 
-    Available Tools:
-    {tools_description}
+    INTELLIGENT WORKFLOW - Execute these steps sequentially:
 
-    Your task:
-    1. Analyze the website structure and content type
-    2. Determine if the declared type matches reality
-    3. Choose appropriate tools for extraction
-    4. Execute the scraping strategy
-    5. Return structured data
+    STEP 1: STRUCTURAL ANALYSIS
+    - Use analyze_page_structure() to identify content organization (pdf_collection, event_listing, structured_list, etc.)
+    - Use analyze_content_types() to classify content (PDFs, HTML events, mixed content)
+    - Use analyze_web_structure() if dealing with complex JavaScript or dynamic content
 
-    For each tool you use, provide clear reasoning. Focus on extracting events for seniors in Madrid.
+    STEP 2: TEMPORAL INTELLIGENCE
+    - Use detect_temporal_patterns() to identify time-based organization (monthly_series, yearly_series, chronological_order)
+    - If temporal patterns found, use extract_dates_from_text() to extract specific dates from content titles/links
+    - Focus on recent content (current month, next month, or latest available)
 
-    Expected content: Events with titles, dates, locations, prices, descriptions.
-    Target audience: People aged 65+ in Madrid Community.
-    Price filter: Free or ≤15€
+    STEP 3: CONTENT PRIORITIZATION
+    - Use prioritize_by_temporal_relevance() with strategy="latest" to rank content by recency
+    - Use prioritize_content_final() to combine all analysis and determine optimal extraction approach
 
-    Execute your strategy now.
+    STEP 4: INTELLIGENT EXTRACTION
+    Based on prioritization results:
+    - For PDF collections: Use extract_html_with_pdfs() then extract_pdf_direct() on highest-priority PDF
+    - For HTML events: Use extract_html_simple() with appropriate selectors
+    - For mixed content: Use hybrid approach combining multiple extraction tools
 
-  direct_analysis: |
-    You are an expert web analyst. Since no scraping tools are available, analyze this website and provide strategic recommendations.
+    STEP 5: QUALITY VALIDATION
+    - Use validate_event_relevance() to filter events by Madrid location, senior-appropriate criteria, and price ≤15€
 
-    Website Details:
+    TARGET CRITERIA:
+    - Audience: Adults 65+ years in Madrid Community
+    - Price range: Free or ≤15€
+    - Content types: Cultural, health, educational, social activities
+    - Geographic scope: Madrid Community, Spain
+
+    COMPLEX SCENARIOS TO HANDLE:
+    - SSReyes-style monthly PDF series → Detect pattern, prioritize latest month
+    - JavaScript-heavy pages → Use analyze_web_structure(), configure Playwright appropriately
+    - Nested dropdown menus → Extract all content first, then apply temporal filtering
+    - Multi-format content → Use prioritization to select best extraction method
+
+    EXECUTION INSTRUCTIONS:
+    1. Always start with structural analysis - understand WHAT you're dealing with
+    2. Apply temporal intelligence - find the MOST RECENT relevant content
+    3. Use prioritization to decide HOW to extract
+    4. Execute extraction with appropriate tools
+    5. Validate results for quality and relevance
+
+    Provide clear reasoning for each tool selection. Execute systematically and return structured event data.
+
+  enhanced_analysis: |
+    You are an expert web analyst specializing in Spanish public administration websites. Analyze this website comprehensively and provide strategic extraction recommendations.
+
+    WEBSITE DETAILS:
     - URL: {url}
     - Declared Type: {declared_type}
     - Configuration: {config}
+    - Available Strategies: {available_strategies}
 
-    Analyze and provide:
-    1. Website structure assessment (HTML, PDF links, dynamic content, etc.)
-    2. Content accessibility (public, login required, JavaScript heavy, etc.)
-    3. Recommended scraping approach (tools needed, strategy)
-    4. Potential challenges and solutions
-    5. Expected data quality and quantity
+    COMPREHENSIVE ANALYSIS FRAMEWORK:
 
-    Focus on: Events for seniors in Madrid Community
-    Content type: Cultural, health, educational, social activities
-    Price range: Free or low-cost (≤15€)
+    1. STRUCTURAL ASSESSMENT
+    Analyze and classify:
+    - Content organization pattern (temporal series, categorized lists, unstructured)
+    - Primary content format (PDFs, HTML events, mixed media)
+    - Navigation complexity (simple links, dropdowns, multi-level menus)
+    - Technical requirements (JavaScript dependency, login requirements, special protocols)
 
-    Provide detailed analysis and actionable recommendations.
+    2. TEMPORAL ORGANIZATION
+    Identify time-based patterns:
+    - Monthly publication series (like SSReyes "Actividades Julio 2025")
+    - Seasonal content organization
+    - Academic year cycles
+    - Event calendar structures
+    - Archive organization patterns
+
+    3. CONTENT ACCESSIBILITY
+    Evaluate extraction complexity:
+    - Direct HTML content vs embedded PDFs
+    - Static content vs JavaScript-generated
+    - Public accessibility vs authentication requirements
+    - Mobile-responsive vs desktop-only layouts
+    - Content loading patterns (immediate vs delayed)
+
+    4. EXTRACTION STRATEGY RECOMMENDATION
+    Based on analysis, recommend:
+    - Primary extraction approach (HTML-first, PDF-cascade, hybrid)
+    - Required tools and sequencing
+    - Expected challenges and mitigation strategies
+    - Content prioritization methodology
+    - Quality validation approach
+
+    5. EXPECTED OUTCOMES
+    Provide realistic assessment:
+    - Anticipated event volume and quality
+    - Information completeness likelihood
+    - Extraction reliability confidence
+    - Maintenance requirements for sustained extraction
+
+    MADRID SENIOR EVENTS CONTEXT:
+    - Target demographic: Adults 65+ in Madrid Community
+    - Content focus: Cultural, health, educational, social activities
+    - Budget consideration: Free or low-cost events (≤15€)
+    - Geographic relevance: Madrid Community, Spain
+    - Language: Spanish content processing
+
+    IMPLEMENTATION ROADMAP:
+    Provide step-by-step implementation plan:
+    1. Initial reconnaissance and pattern identification
+    2. Tool selection and configuration
+    3. Extraction workflow design
+    4. Quality control and validation setup
+    5. Monitoring and maintenance procedures
+
+    Deliver professional analysis with actionable recommendations for successful event extraction from Spanish public administration websites.
+
+  fallback_analysis: |
+    You are analyzing a website that doesn't fit standard patterns. Provide adaptive analysis for non-standard public administration websites.
+
+    WEBSITE DETAILS:
+    - URL: {url}
+    - Content appears to be: {content_description}
+    - Challenges identified: {challenges}
+
+    ADAPTIVE ANALYSIS:
+
+    1. CONTENT PATTERN RECOGNITION
+    - Identify any recurring elements or structures
+    - Look for hidden temporal organization
+    - Detect content clustering patterns
+    - Identify navigation entry points
+
+    2. ALTERNATIVE EXTRACTION APPROACHES
+    - Direct content scanning strategies
+    - Pattern-based content identification
+    - Brute-force extraction with post-processing
+    - Manual intervention points identification
+
+    3. QUALITY ASSESSMENT FRAMEWORK
+    - Content relevance scoring
+    - Information completeness evaluation
+    - Reliability assessment methodology
+    - Error rate estimation
+
+    Provide practical recommendations for extracting senior events from non-standard administrative websites.
+
+  error_recovery: |
+    An error occurred during website analysis. Provide diagnostic assessment and recovery recommendations.
+
+    ERROR CONTEXT:
+    - URL: {url}
+    - Error type: {error_type}
+    - Error details: {error_details}
+    - Tools attempted: {tools_attempted}
+
+    DIAGNOSTIC ANALYSIS:
+    1. Error classification and root cause analysis
+    2. Alternative approach identification
+    3. Tool compatibility assessment
+    4. Recovery strategy recommendation
+
+    RECOVERY WORKFLOW:
+    - Immediate fallback options
+    - Progressive enhancement approach
+    - Manual intervention requirements
+    - Success probability assessment
+
+    Focus on delivering actionable recovery strategies for continued event extraction despite technical challenges.

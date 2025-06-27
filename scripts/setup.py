@@ -4,35 +4,37 @@
 """
 Script de configuración inicial completa del sistema
 """
-import sys
 import os
-import subprocess
 import shutil
+import subprocess
+import sys
 from pathlib import Path
 
 # Añadir el directorio raíz al path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+
 
 def check_python_version():
     """
     Verificar versión de Python
     """
     print("🐍 Verificando versión de Python...")
-    
+
     if sys.version_info < (3, 11):
         print("❌ Se requiere Python 3.11 o superior")
         print(f"   Versión actual: {sys.version}")
         return False
-    
+
     print(f"✅ Python {sys.version.split()[0]} - OK")
     return True
+
 
 def create_directories():
     """
     Crear directorios necesarios
     """
     print("📁 Creando directorios necesarios...")
-    
+
     directories = [
         "data",
         "data/logs",
@@ -40,9 +42,9 @@ def create_directories():
         "data/temp",
         "logs",
         "nginx",
-        "nginx/ssl"
+        "nginx/ssl",
     ]
-    
+
     for directory in directories:
         path = Path(directory)
         if not path.exists():
@@ -51,37 +53,39 @@ def create_directories():
         else:
             print(f"   ⚠️  Ya existe: {directory}")
 
+
 def check_dependencies():
     """
     Verificar dependencias del sistema
     """
     print("📦 Verificando dependencias del sistema...")
-    
+
     # Verificar que playwright esté instalado
     try:
         import playwright
+
         print("   ✅ Playwright - Instalado")
-        
+
         # Verificar browsers de Playwright
         print("🌐 Verificando browsers de Playwright...")
         result = subprocess.run(
             ["python", "-m", "playwright", "install", "chromium"],
             capture_output=True,
-            text=True
+            text=True,
         )
-        
+
         if result.returncode == 0:
             print("   ✅ Browsers de Playwright - OK")
         else:
             print("   ⚠️  Instalando browsers de Playwright...")
             subprocess.run(["python", "-m", "playwright", "install", "chromium"])
             print("   ✅ Browsers instalados")
-            
+
     except ImportError:
         print("   ❌ Playwright no instalado")
         print("   Instalar con: pip install playwright")
         return False
-    
+
     # Verificar otras dependencias críticas
     critical_deps = [
         ("sqlalchemy", "SQLAlchemy"),
@@ -89,9 +93,9 @@ def check_dependencies():
         ("langchain", "LangChain"),
         ("langgraph", "LangGraph"),
         ("docling", "Docling"),
-        ("apscheduler", "APScheduler")
+        ("apscheduler", "APScheduler"),
     ]
-    
+
     for module, name in critical_deps:
         try:
             __import__(module)
@@ -100,15 +104,16 @@ def check_dependencies():
             print(f"   ❌ {name} - NO INSTALADO")
             print(f"   Instalar con: pip install {module}")
             return False
-    
+
     return True
+
 
 def create_env_file():
     """
     Crear archivo .env de ejemplo
     """
     print("⚙️  Creando archivo de configuración...")
-    
+
     env_example = """# =============================================================================
 # CONFIGURACIÓN DEL SISTEMA - Eventos Mayores Madrid
 # =============================================================================
@@ -156,16 +161,16 @@ ALLOWED_ORIGINS=["http://localhost:3000","http://127.0.0.1:3000","https://tu-dom
 # 5. Ajusta ALLOWED_ORIGINS con tu dominio de producción
 # =============================================================================
 """
-    
+
     env_file = Path(".env.example")
-    
+
     if not env_file.exists():
-        with open(env_file, 'w', encoding='utf-8') as f:
+        with open(env_file, "w", encoding="utf-8") as f:
             f.write(env_example)
         print("   ✅ Archivo .env.example creado")
     else:
         print("   ⚠️  .env.example ya existe")
-    
+
     # Verificar si existe .env
     if not Path(".env").exists():
         print("   ⚠️  IMPORTANTE: Copia .env.example a .env y configúralo")
@@ -174,14 +179,16 @@ ALLOWED_ORIGINS=["http://localhost:3000","http://127.0.0.1:3000","https://tu-dom
         print("   ✅ Archivo .env encontrado")
         return True
 
+
 def initialize_database():
     """
     Inicializar base de datos
     """
     print("🗄️  Inicializando base de datos...")
-    
+
     try:
         from scripts.init_db import init_database
+
         init_database()
         print("   ✅ Base de datos inicializada")
         return True
@@ -189,14 +196,16 @@ def initialize_database():
         print(f"   ❌ Error inicializando base de datos: {e}")
         return False
 
+
 def seed_example_sources():
     """
     Insertar fuentes de ejemplo
     """
     print("🌱 Insertando fuentes de ejemplo...")
-    
+
     try:
         from scripts.seed_sources import seed_default_sources
+
         seed_default_sources()
         print("   ✅ Fuentes de ejemplo insertadas")
         return True
@@ -204,12 +213,13 @@ def seed_example_sources():
         print(f"   ❌ Error insertando fuentes: {e}")
         return False
 
+
 def create_nginx_config():
     """
     Crear configuración básica de nginx
     """
     print("🌐 Creando configuración de nginx...")
-    
+
     nginx_config = """# nginx/nginx.conf
 # Configuración básica para Eventos Mayores Madrid
 
@@ -311,22 +321,24 @@ http {
     # }
 }
 """
-    
+
     nginx_file = Path("nginx/nginx.conf")
-    
+
     if not nginx_file.exists():
-        with open(nginx_file, 'w', encoding='utf-8') as f:
+        with open(nginx_file, "w", encoding="utf-8") as f:
             f.write(nginx_config)
         print("   ✅ Configuración nginx creada")
         print("   ⚠️  IMPORTANTE: Edita nginx/nginx.conf y cambia 'tu-dominio.com'")
     else:
         print("   ⚠️  nginx.conf ya existe")
 
+
 def print_final_instructions():
     """
     Mostrar instrucciones finales
     """
-    print("""
+    print(
+        """
 🎉 ¡CONFIGURACIÓN INICIAL COMPLETADA!
 
 📋 PRÓXIMOS PASOS:
@@ -366,14 +378,16 @@ def print_final_instructions():
    python scripts/test_scraping.py --help
 
 🎯 ¡YA ESTÁ LISTO PARA USAR!
-""")
+"""
+    )
+
 
 def main():
     """
     Función principal de configuración
     """
     print("🚀 CONFIGURACIÓN INICIAL - Eventos Mayores Madrid\n")
-    
+
     steps = [
         ("Verificar Python", check_python_version),
         ("Crear directorios", create_directories),
@@ -381,11 +395,11 @@ def main():
         ("Crear configuración", create_env_file),
         ("Inicializar base de datos", initialize_database),
         ("Insertar fuentes ejemplo", seed_example_sources),
-        ("Crear configuración nginx", create_nginx_config)
+        ("Crear configuración nginx", create_nginx_config),
     ]
-    
+
     failed_steps = []
-    
+
     for step_name, step_function in steps:
         try:
             if not step_function():
@@ -394,15 +408,16 @@ def main():
             print(f"❌ Error en {step_name}: {e}")
             failed_steps.append(step_name)
         print()  # Línea en blanco entre pasos
-    
+
     if failed_steps:
         print(f"⚠️  CONFIGURACIÓN COMPLETADA CON ADVERTENCIAS")
         print(f"   Pasos con problemas: {', '.join(failed_steps)}")
         print(f"   Revisa los mensajes anteriores para más detalles")
     else:
         print("✅ CONFIGURACIÓN COMPLETADA EXITOSAMENTE")
-    
+
     print_final_instructions()
+
 
 if __name__ == "__main__":
     main()

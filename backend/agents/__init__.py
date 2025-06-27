@@ -3,14 +3,14 @@
 """
 Intelligent scraping agents system
 """
-from .scraping_agent import ScrapingAgent
-from .processing_agent import ProcessingAgent  
-from .supervisor_agent import SupervisorAgent
 from .orchestrator import ScrapingOrchestrator
+from .processing_agent import ProcessingAgent
+from .scraping_agent import ScrapingAgent
+from .supervisor_agent import SupervisorAgent
 
 __all__ = [
     "ScrapingAgent",
-    "ProcessingAgent", 
+    "ProcessingAgent",
     "SupervisorAgent",
-    "ScrapingOrchestrator"
+    "ScrapingOrchestrator",
 ]

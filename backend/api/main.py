@@ -3,12 +3,20 @@
 """
 Aplicación principal FastAPI
 """
+import os
+from pathlib import Path
+from dotenv import load_dotenv
 from contextlib import asynccontextmanager
+
+# Cargar variables de entorno desde .env en la raíz del proyecto
+env_path = Path(__file__).parent.parent.parent / '.env'
+load_dotenv(dotenv_path=env_path)
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.core import get_settings, create_tables
-from .routes import eventos, admin, health
+from backend.api.routes import admin, eventos, health
+from backend.core import create_tables, get_settings
 
 
 @asynccontextmanager
@@ -30,7 +38,7 @@ app = FastAPI(
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
-    lifespan=lifespan
+    lifespan=lifespan,
 )
 
 # CORS para frontend

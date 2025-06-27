@@ -6,9 +6,7 @@ Modelos SQLAlchemy para el proyecto
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import (
-    Boolean, Column, DateTime, Integer, String, Text, JSON
-)
+from sqlalchemy import JSON, Boolean, Column, DateTime, Integer, String, Text
 from sqlalchemy.sql import func
 
 from .database import Base
@@ -18,6 +16,7 @@ class Evento(Base):
     """
     Modelo para eventos extraídos - Flexible con JSON para campos dinámicos
     """
+
     __tablename__ = "eventos"
 
     # ============= CAMPOS BASE OBLIGATORIOS =============
@@ -27,17 +26,17 @@ class Evento(Base):
     categoria = Column(String(50), nullable=False, index=True)  # Cultura, Deporte, etc.
     fuente_id = Column(Integer, nullable=False, index=True)
     fuente_nombre = Column(String(100), nullable=False)
-    
+
     # ============= CAMPOS COMUNES OPCIONALES =============
     precio = Column(String(50))  # "Gratis", "5€", etc.
     ubicacion = Column(String(255))
     descripcion = Column(Text)
     fecha_fin = Column(DateTime)
-    
+
     # ============= DATOS DINÁMICOS POR FUENTE =============
     datos_extra = Column(JSON)  # Campos específicos de cada fuente
-    datos_raw = Column(JSON)    # Datos originales sin procesar (debug)
-    
+    datos_raw = Column(JSON)  # Datos originales sin procesar (debug)
+
     # ============= METADATOS DEL SISTEMA =============
     hash_contenido = Column(String(64), index=True)  # Para detectar duplicados
     url_original = Column(String(500))  # URL donde se encontró
@@ -52,28 +51,31 @@ class FuenteWeb(Base):
     """
     Modelo para fuentes web configuradas - Sistema dinámico de extracción
     """
+
     __tablename__ = "fuentes_web"
 
     id = Column(Integer, primary_key=True, index=True)
     nombre = Column(String(100), nullable=False, unique=True)
     url = Column(String(500), nullable=False)
     tipo = Column(String(20), nullable=False)  # HTML, PDF, API
-    
+
     # ============= CONFIGURACIÓN DE EXTRACCIÓN =============
     schema_extraccion = Column(JSON)  # Define QUÉ campos extraer y CÓMO
-    mapeo_campos = Column(JSON)       # Mapeo de campos extraídos -> modelo base
-    configuracion_scraping = Column(JSON)  # Config específica (selectors, headers, etc.)
-    
+    mapeo_campos = Column(JSON)  # Mapeo de campos extraídos -> modelo base
+    configuracion_scraping = Column(
+        JSON
+    )  # Config específica (selectors, headers, etc.)
+
     # ============= CONFIGURACIÓN DE EJECUCIÓN =============
     frecuencia_actualizacion = Column(String(50), default="0 9 * * 1")  # cron
     activa = Column(Boolean, default=True, index=True)
-    
+
     # ============= METADATOS DE EJECUCIÓN =============
     ultima_ejecucion = Column(DateTime)
     ultimo_estado = Column(String(20), default="pending")  # success, error, pending
     ultimo_error = Column(Text)
     eventos_encontrados_ultima_ejecucion = Column(Integer, default=0)
-    
+
     # ============= METADATOS DEL SISTEMA =============
     fecha_creacion = Column(DateTime, default=func.now())
     fecha_actualizacion = Column(DateTime, default=func.now(), onupdate=func.now())
@@ -87,6 +89,7 @@ class LogScraping(Base):
     """
     Modelo para logs de scraping
     """
+
     __tablename__ = "logs_scraping"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -110,6 +113,7 @@ class Configuracion(Base):
     """
     Modelo para configuración general del sistema
     """
+
     __tablename__ = "configuracion"
 
     id = Column(Integer, primary_key=True, index=True)

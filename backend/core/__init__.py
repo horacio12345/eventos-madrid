@@ -4,5 +4,6 @@
 Módulo core - Configuración base del proyecto
 """
 from .config import get_settings
-from .database import Base, SessionLocal, engine, get_db, create_tables, drop_tables
-from .models import Evento, FuenteWeb, LogScraping, Configuracion
+from .database import (Base, SessionLocal, create_tables, drop_tables, engine,
+                       get_db)
+from .models import Configuracion, Evento, FuenteWeb, LogScraping

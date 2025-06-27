@@ -3,4 +3,4 @@
 """
 Routers API
 """
-from . import eventos, admin, health
+from . import admin, eventos, health

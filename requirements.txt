@@ -35,7 +35,6 @@ docling-core
 docling-parse
 
 # OCR y procesamiento de imágenes
-pytesseract
 Pillow
 opencv-python
 

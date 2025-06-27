@@ -4,11 +4,7 @@
 Servicios del backend
 """
 from .event_normalizer import EventNormalizer
-from .source_manager import SourceManager
 from .scheduler import ScrapingScheduler
+from .source_manager import SourceManager
 
-__all__ = [
-    "EventNormalizer",
-    "SourceManager", 
-    "ScrapingScheduler"
-]
+__all__ = ["EventNormalizer", "SourceManager", "ScrapingScheduler"]

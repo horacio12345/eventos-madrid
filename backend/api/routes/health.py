@@ -4,6 +4,7 @@
 Endpoints de health check
 """
 from datetime import datetime
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
@@ -24,10 +25,10 @@ def health_check(db: Session = Depends(get_db)):
         db_status = "ok"
     except Exception as e:
         db_status = f"error: {str(e)}"
-    
+
     return {
         "status": "ok" if db_status == "ok" else "error",
         "timestamp": datetime.now().isoformat(),
         "app_name": settings.app_name,
-        "database": db_status
+        "database": db_status,
     }
