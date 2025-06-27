@@ -58,14 +58,28 @@ class ScrapingAgent:
     def _create_agent_executor(self):
         """Create agent executor with tools"""
         try:
-            # Use custom prompt optimized for new tool workflow
-            prompt = PromptTemplate.from_template(
-                self.config["prompts"]["intelligent_strategy"]
+            # Get the raw prompt template
+            prompt_template = self.config["prompts"]["intelligent_strategy"]
+            
+            # Format tool descriptions
+            tools_description = "\n".join([f"- {tool.name}: {tool.description}" for tool in self.available_tools])
+            tool_names = ", ".join([tool.name for tool in self.available_tools])
+            
+            # Create prompt with all required variables
+            prompt = PromptTemplate(
+                template=prompt_template,
+                input_variables=["url", "declared_type", "config", "tools_description", "agent_scratchpad"],
+                partial_variables={
+                    "tools": tools_description,
+                    "tool_names": tool_names
+                }
             )
 
-            # Create ReAct agent
+            # Create ReAct agent with the prompt template
             agent = create_react_agent(
-                llm=self.llm, tools=self.available_tools, prompt=prompt
+                llm=self.llm,
+                tools=self.available_tools,
+                prompt=prompt
             )
 
             # Create executor with optimized settings

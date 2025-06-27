@@ -64,6 +64,31 @@ export default function FuentesPage() {
     }
   };
 
+  const handleUpdateFuente = async () => {
+    if (!selectedFuente) return;
+
+    try {
+      setActionLoading(selectedFuente.id);
+      await api.admin.fuentes.update(selectedFuente.id, newFuente);
+      setMessage('Fuente actualizada exitosamente');
+      setShowCreateModal(false);
+      setSelectedFuente(null);
+      refetch();
+    } catch (error) {
+      setMessage(`Error: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleFormSubmit = () => {
+    if (selectedFuente) {
+      handleUpdateFuente();
+    } else {
+      handleCreateFuente();
+    }
+  };
+
   const handleToggleActive = async (fuente: FuenteWeb) => {
     try {
       setActionLoading(fuente.id);
@@ -228,6 +253,21 @@ export default function FuentesPage() {
 
                       {/* Editar */}
                       <button
+                        onClick={() => {
+                          setSelectedFuente(fuente);
+                          setNewFuente({
+                            nombre: fuente.nombre,
+                            url: fuente.url,
+                            tipo: fuente.tipo,
+                            schema_extraccion: fuente.schema_extraccion || {},
+                            mapeo_campos: fuente.mapeo_campos || {},
+                            configuracion_scraping: fuente.configuracion_scraping || {},
+                            frecuencia_actualizacion: fuente.frecuencia_actualizacion,
+                            activa: fuente.activa
+                          });
+                          setShowCreateModal(true);
+                          console.log('Editando fuente:', fuente.id, fuente.nombre);
+                        }}
                         className="btn btn-outline btn-sm"
                         title="Editar fuente"
                       >
@@ -271,8 +311,21 @@ export default function FuentesPage() {
       {/* Modal crear fuente */}
       <Modal
         isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-        title="Crear Nueva Fuente"
+        onClose={() => {
+          setShowCreateModal(false);
+          setSelectedFuente(null);
+          setNewFuente({
+            nombre: '',
+            url: '',
+            tipo: 'HTML',
+            schema_extraccion: {},
+            mapeo_campos: {},
+            configuracion_scraping: {},
+            frecuencia_actualizacion: '0 9 * * 1',
+            activa: false
+          });
+        }}
+        title={selectedFuente ? `Editar ${selectedFuente.nombre}` : "Crear Nueva Fuente"}
         size="lg"
       >
         <div className="space-y-4">
@@ -346,11 +399,17 @@ export default function FuentesPage() {
               Cancelar
             </button>
             <button
-              onClick={handleCreateFuente}
-              disabled={!newFuente.nombre || !newFuente.url || actionLoading === -1}
-              className="btn btn-primary"
-            >
-              {actionLoading === -1 ? <LoadingSpinner size="sm" /> : 'Crear Fuente'}
+              type='button'
+              onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  console.log('🔥 BUTTON CLICKED!');
+                  handleFormSubmit();
+                }}
+                className="btn btn-primary"
+              >
+              {actionLoading === -1 ? <LoadingSpinner size="sm" /> : 
+              selectedFuente ? 'Actualizar Fuente' : 'Crear Fuente'}
             </button>
           </div>
         </div>

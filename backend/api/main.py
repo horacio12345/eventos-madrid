@@ -17,6 +17,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from backend.api.routes import admin, eventos, health
 from backend.core import create_tables, get_settings
+from backend.services.scheduler import start_scheduler, stop_scheduler
+from backend.scraping.engine import ScrapingEngine
 
 
 @asynccontextmanager
@@ -24,8 +26,11 @@ async def lifespan(app: FastAPI):
     """Gestión del ciclo de vida de la aplicación"""
     # Startup
     create_tables()
+    scraping_engine = ScrapingEngine()
+    start_scheduler(scraping_engine=scraping_engine)
     yield
-    # Shutdown (si necesario en el futuro)
+    # Shutdown
+    stop_scheduler()
 
 
 # Configuración

@@ -196,26 +196,37 @@ class ScrapingScheduler:
 
     def _parse_cron_expression(self, cron_expr: str) -> CronTrigger:
         """
-        Parsear expresión cron a trigger de APScheduler
+        Parsear expresión cron a trigger de APScheduler de forma robusta
         """
+        print(f"Intentando parsear expresión cron: '{cron_expr}'")
         try:
-            # Formato: "minute hour day month day_of_week"
-            # Ejemplo: "0 9 * * 1" = Lunes a las 9:00
+            # Limpiar y dividir la expresión
             parts = cron_expr.strip().split()
 
             if len(parts) != 5:
-                raise ValueError(f"Expresión cron inválida: {cron_expr}")
+                # Intentar un manejo más flexible si no son 5 partes
+                # Por ejemplo, si se recibe "*/10 * * * *" como una sola cadena
+                if len(parts) == 1 and ' ' in cron_expr:
+                    parts = cron_expr.strip().split(' ')
+
+                if len(parts) != 5:
+                    raise ValueError(f"Expresión cron debe tener 5 partes. Recibido: {cron_expr}")
 
             minute, hour, day, month, day_of_week = parts
 
+            # Validar que los componentes son válidos para CronTrigger
             return CronTrigger(
-                minute=minute, hour=hour, day=day, month=month, day_of_week=day_of_week
+                minute=minute,
+                hour=hour,
+                day=day,
+                month=month,
+                day_of_week=day_of_week,
             )
 
         except Exception as e:
-            print(f"Error parseando cron '{cron_expr}': {e}")
-            # Fallback a expresión por defecto
-            return CronTrigger(minute=0, hour=9, day_of_week="mon")  # Lunes 9:00
+            print(f"Error parseando cron '{cron_expr}': {e}. Usando fallback.")
+            # Fallback a una expresión por defecto segura (ej. cada lunes a las 9:00)
+            return CronTrigger(minute=0, hour=9, day_of_week="mon")
 
     def get_scheduled_jobs(self) -> List[Dict]:
         """

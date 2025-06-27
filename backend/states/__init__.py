@@ -5,7 +5,7 @@ Shared state definitions for the scraping pipeline
 """
 from .pipeline_state import (AgentExecutionState, EventValidationState,
                              PipelineMetadata, ScrapingPipelineState,
-                             create_initial_state,
+                             create_initial_state, finalize_pipeline_state,
                              update_state_with_agent_result)
 
 __all__ = [
@@ -14,5 +14,6 @@ __all__ = [
     "EventValidationState",
     "PipelineMetadata",
     "create_initial_state",
+    "finalize_pipeline_state",
     "update_state_with_agent_result",
 ]
