@@ -1,4 +1,4 @@
-# backend/agents/processing_agent.py
+# backend/agents/processing_agent.py - Fix para mantener validation_results
 
 """
 Processing Agent - Normalizes and validates scraped data
@@ -64,14 +64,29 @@ class ProcessingAgent:
         """
         Process scraped data and normalize it
         """
+        print(f"⚙️ [DEBUG] ProcessingAgent.process_data - input state keys: {list(state.keys())}")
+        print(f"⚙️ [DEBUG] ProcessingAgent.process_data - validation_results in input: {'validation_results' in state}")
+        
         try:
             raw_data = state.get("scraped_data", [])
             field_mapping = state.get("mapeo_campos", {})
 
             if not raw_data:
-                state["processed_events"] = []
-                state["processing_errors"] = ["No data to process"]
-                return state
+                # PRESERVAR estado completo y actualizar campos específicos
+                result_state = state.copy()  # CRÍTICO: preservar todo el estado
+                result_state["processed_events"] = []
+                result_state["processing_errors"] = ["No data to process"]
+                
+                # MANTENER o inicializar validation_results
+                if "validation_results" not in result_state:
+                    result_state["validation_results"] = {
+                        "quality_score": 0.0,
+                        "total_extracted": 0,
+                        "total_validated": 0,
+                        "approval_rate": 0.0
+                    }
+                
+                return result_state
 
             # Step 1: Basic normalization
             normalized_events = []
@@ -98,10 +113,11 @@ class ProcessingAgent:
                 validated_events = []
                 validation_errors = ["No events passed normalization"]
 
-            # Update state
-            state["processed_events"] = validated_events
-            state["processing_errors"] = normalization_errors + validation_errors
-            state["processing_metadata"] = {
+            # PRESERVAR estado completo y actualizar campos específicos
+            result_state = state.copy()  # CRÍTICO: preservar todo el estado
+            result_state["processed_events"] = validated_events
+            result_state["processing_errors"] = normalization_errors + validation_errors
+            result_state["processing_metadata"] = {
                 "total_raw": len(raw_data),
                 "normalized": len(normalized_events),
                 "validated": len(validated_events),
@@ -110,12 +126,34 @@ class ProcessingAgent:
                 ),
             }
 
-            return state
+            # ACTUALIZAR validation_results
+            result_state["validation_results"] = {
+                "quality_score": 1.0 - result_state["processing_metadata"]["rejection_rate"],
+                "total_extracted": len(raw_data),
+                "total_validated": len(validated_events),
+                "approval_rate": 1.0 - result_state["processing_metadata"]["rejection_rate"]
+            }
+            
+            print(f"⚙️ [DEBUG] ProcessingAgent.process_data - output validation_results: {result_state['validation_results']}")
+            return result_state
 
         except Exception as e:
-            state["processing_errors"] = [f"Processing agent error: {str(e)}"]
-            state["processed_events"] = []
-            return state
+            print(f"💥 [DEBUG] ProcessingAgent.process_data - Exception: {str(e)}")
+            # PRESERVAR estado completo en caso de error
+            result_state = state.copy()
+            result_state["processing_errors"] = [f"Processing agent error: {str(e)}"]
+            result_state["processed_events"] = []
+            
+            # MANTENER o inicializar validation_results
+            if "validation_results" not in result_state:
+                result_state["validation_results"] = {
+                    "quality_score": 0.0,
+                    "total_extracted": 0,
+                    "total_validated": 0,
+                    "approval_rate": 0.0
+                }
+            
+            return result_state
 
     async def _validate_with_llm(
         self, events: List[Dict]

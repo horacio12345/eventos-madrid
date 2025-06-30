@@ -130,6 +130,10 @@ class ScrapingEngine:
                 log_id, "success", eventos_procesados, tiempo_transcurrido, final_state
             )
 
+            # CORRECCIÓN: Manejo seguro de validation_results
+            validation_results = final_state.get("validation_results", {})
+            quality_score = validation_results.get("quality_score", 0.0)
+
             return {
                 "fuente_id": fuente.id,
                 "fuente_nombre": fuente.nombre,
@@ -138,7 +142,7 @@ class ScrapingEngine:
                 "eventos_actualizados": len(eventos_procesados["actualizados"]),
                 "tiempo_segundos": tiempo_transcurrido,
                 "pipeline_decision": final_state["supervision_decision"],
-                "quality_score": final_state["validation_results"]["quality_score"],
+                "quality_score": quality_score,
                 "agent_strategy": final_state["scraping_strategy"],
             }
 
@@ -294,11 +298,15 @@ class ScrapingEngine:
                 if error:
                     log.detalles_error = error
                 elif pipeline_state:
+                    # CORRECCIÓN: Acceso seguro a validation_results
+                    validation_results = pipeline_state.get("validation_results", {})
+                    quality_score = validation_results.get("quality_score", 0.0)
+                    
                     # Add pipeline insights to log message
                     log.mensaje = (
                         f"Decision: {pipeline_state.get('supervision_decision', 'N/A')}, "
                         f"Strategy: {pipeline_state.get('scraping_strategy', 'N/A')}, "
-                        f"Quality: {pipeline_state.get('validation_results', {}).get('quality_score', 0):.2f}"
+                        f"Quality: {quality_score:.2f}"
                     )
 
                 db.commit()
@@ -309,8 +317,12 @@ class ScrapingEngine:
         """
         Test source configuration without saving data
         """
+        print("--- DENTRO DE SCRAPING ENGINE: test_fuente ---")
+        print(f"Configuración de test recibida:\n{configuracion_test}")
+        
         try:
             # Execute intelligent agent pipeline for testing
+            print("🚀 Ejecutando el pipeline del orquestador...")
             final_state = await self.orchestrator.execute_scraping_pipeline(
                 url=configuracion_test["url"],
                 tipo=configuracion_test["tipo"],
@@ -320,6 +332,13 @@ class ScrapingEngine:
                     "configuracion_scraping", {}
                 ),
             )
+            
+            print("\n✅ Pipeline del orquestador finalizado. Estado final completo:")
+            print(final_state)
+            print("-" * 20)
+
+            # CORRECCIÓN: Acceso seguro a validation_results
+            validation_results = final_state.get("validation_results", {})
 
             # Prepare response in expected format
             if final_state["supervision_decision"] == "APPROVED":
@@ -329,44 +348,56 @@ class ScrapingEngine:
             elif final_state["supervision_decision"] == "ERROR":
                 eventos_preview = []
                 estado = "error"
-                errores = final_state["pipeline_errors"]
-            else:
-                eventos_preview = final_state["approved_events"][:3]
+                errores = final_state.get("pipeline_errors", ["Error no especificado en pipeline_errors"])
+            else: # REJECTED, etc.
+                eventos_preview = final_state.get("approved_events", [])[:3]
                 estado = "warning"
                 errores = [
-                    f"Decision: {final_state['supervision_decision']} - {final_state['decision_reasoning']}"
+                    f"Decisión: {final_state['supervision_decision']} - {final_state.get('supervision_reasoning', 'Sin razonamiento.')}"
                 ]
 
-            return {
+            response = {
                 "estado": estado,
-                "eventos_encontrados": len(final_state["approved_events"]),
+                "eventos_encontrados": len(final_state.get("approved_events", [])),
                 "preview_eventos": eventos_preview,
-                "tiempo_ejecucion": final_state.get("total_duration_seconds", 0),
+                "tiempo_ejecucion": final_state.get("total_duration", 0),
                 "errores": errores,
                 "pipeline_decision": final_state["supervision_decision"],
-                "decision_reasoning": final_state["decision_reasoning"],
-                "quality_score": final_state["validation_results"]["quality_score"],
-                "scraping_strategy": final_state["scraping_strategy"],
+                "decision_reasoning": final_state.get("supervision_reasoning", ""),
+                "quality_score": validation_results.get("quality_score", 0.0),
+                "scraping_strategy": final_state.get("scraping_strategy", "unknown"),
                 "agent_metadata": {
                     "tools_used": final_state.get("scraping_tools_used", []),
                     "analysis_result": final_state.get("web_analysis_result", {}),
-                    "validation_metrics": final_state["validation_results"],
+                    "validation_metrics": validation_results,
                 },
             }
+            print("\n📦 Respuesta preparada para enviar al frontend:")
+            print(response)
+            print("--- FIN DE test_fuente ---")
+            return response
 
         except Exception as e:
-            return {
+            import traceback
+            print("\n💥 ERROR INESPERADO DENTRO DE test_fuente:")
+            traceback.print_exc()
+            
+            response = {
                 "estado": "error",
-                "error": str(e),
+                "error": f"Excepción en ScrapingEngine: {str(e)}",
                 "eventos_encontrados": 0,
                 "preview_eventos": [],
-                "errores": [str(e)],
-                "pipeline_decision": "ERROR",
-                "decision_reasoning": f"Pipeline execution failed: {str(e)}",
+                "errores": [str(e), traceback.format_exc()],
+                "pipeline_decision": "CRITICAL_ERROR",
+                "decision_reasoning": f"Pipeline execution failed with exception: {str(e)}",
                 "quality_score": 0.0,
                 "scraping_strategy": "failed",
                 "agent_metadata": {},
             }
+            print("\n📦 Respuesta de error preparada para enviar al frontend:")
+            print(response)
+            print("--- FIN DE test_fuente (con error) ---")
+            return response
 
     def get_orchestrator_status(self) -> Dict:
         """

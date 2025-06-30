@@ -1,0 +1,22 @@
+{
+  "name": "eventos-madrid",
+  "version": "1.0.0",
+  "description": "**Plataforma inteligente de agregación automática de eventos gratuitos y de bajo coste para personas mayores en la Comunidad de Madrid.**",
+  "main": "index.js",
+  "scripts": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/horacio12345/eventos-madrid.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/horacio12345/eventos-madrid/issues"
+  },
+  "homepage": "https://github.com/horacio12345/eventos-madrid#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.53.1",
+    "@types/node": "^24.0.7"
+  }
+}

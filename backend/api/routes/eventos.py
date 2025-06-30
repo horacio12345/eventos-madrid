@@ -7,7 +7,7 @@ from datetime import datetime
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import and_
+from sqlalchemy import and_, func  # <-- AGREGAR func aquí
 from sqlalchemy.orm import Session
 
 from backend.core import Evento, get_db
@@ -92,7 +92,7 @@ def get_categorias(db: Session = Depends(get_db)):
     Obtener lista de categorías disponibles con conteo de eventos
     """
     result = (
-        db.query(Evento.categoria, db.func.count(Evento.id).label("total"))
+        db.query(Evento.categoria, func.count(Evento.id).label("total"))  # <-- CAMBIAR db.func por func
         .filter(
             and_(Evento.activo == True, Evento.fecha_inicio >= datetime.now().date())
         )

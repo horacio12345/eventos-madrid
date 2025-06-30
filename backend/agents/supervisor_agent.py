@@ -1,4 +1,4 @@
-# backend/agents/supervisor_agent.py
+# backend/agents/supervisor_agent.py - Fix para mantener validation_results
 
 """
 Supervisor Agent - Reviews quality and decides publication
@@ -59,6 +59,9 @@ class SupervisorAgent:
         """
         Supervise quality and decide approval for publication
         """
+        print(f"👨‍💼 [DEBUG] SupervisorAgent.supervise_quality - input state keys: {list(state.keys())}")
+        print(f"👨‍💼 [DEBUG] SupervisorAgent.supervise_quality - validation_results in input: {'validation_results' in state}")
+        
         try:
             events = state.get("processed_events", [])
             all_errors = state.get("scraping_errors", []) + state.get(
@@ -74,19 +77,55 @@ class SupervisorAgent:
             # Final decision
             final_decision = self._make_final_decision(auto_validation, llm_decision)
 
-            # Update state
-            state["supervision_decision"] = final_decision["status"]
-            state["supervision_reasoning"] = final_decision["reasoning"]
-            state["approved_events"] = final_decision.get("approved_events", [])
-            state["rejected_events"] = final_decision.get("rejected_events", [])
+            # PRESERVAR estado completo y actualizar campos específicos
+            result_state = state.copy()  # CRÍTICO: preservar todo el estado
+            result_state["supervision_decision"] = final_decision["status"]
+            result_state["supervision_reasoning"] = final_decision["reasoning"]
+            result_state["approved_events"] = final_decision.get("approved_events", [])
+            result_state["rejected_events"] = final_decision.get("rejected_events", [])
 
-            return state
+            # MANTENER o inicializar validation_results si no existe
+            if "validation_results" not in result_state:
+                result_state["validation_results"] = {
+                    "quality_score": 0.0,
+                    "total_extracted": 0,
+                    "total_validated": 0,
+                    "approval_rate": 0.0
+                }
+
+            # ACTUALIZAR validation_results con información de supervisión
+            result_state["validation_results"]["total_approved"] = len(final_decision.get("approved_events", []))
+            result_state["validation_results"]["total_rejected"] = len(final_decision.get("rejected_events", []))
+            
+            # Actualizar quality_score basado en la decisión final
+            if final_decision["status"] == "APPROVED":
+                result_state["validation_results"]["quality_score"] = max(
+                    result_state["validation_results"]["quality_score"], 0.8
+                )
+            elif final_decision["status"] == "REJECTED":
+                result_state["validation_results"]["quality_score"] = 0.0
+            
+            print(f"👨‍💼 [DEBUG] SupervisorAgent.supervise_quality - final validation_results: {result_state['validation_results']}")
+            return result_state
 
         except Exception as e:
-            state["supervision_decision"] = "ERROR"
-            state["supervision_reasoning"] = f"Supervisor error: {str(e)}"
-            state["approved_events"] = []
-            return state
+            print(f"💥 [DEBUG] SupervisorAgent.supervise_quality - Exception: {str(e)}")
+            # PRESERVAR estado completo en caso de error
+            result_state = state.copy()
+            result_state["supervision_decision"] = "ERROR"
+            result_state["supervision_reasoning"] = f"Supervisor error: {str(e)}"
+            result_state["approved_events"] = []
+            
+            # MANTENER o inicializar validation_results
+            if "validation_results" not in result_state:
+                result_state["validation_results"] = {
+                    "quality_score": 0.0,
+                    "total_extracted": 0,
+                    "total_validated": 0,
+                    "approval_rate": 0.0
+                }
+            
+            return result_state
 
     def _automatic_validation(self, events: List[Dict]) -> Dict:
         """Automatic validation based on criteria from config"""

@@ -3,7 +3,9 @@
 """
 Endpoints de administración con autenticación
 """
+
 import hashlib
+import traceback  # <--- AÑADIR IMPORT
 from datetime import datetime, timedelta
 from typing import List, Optional
 
@@ -14,6 +16,7 @@ from sqlalchemy.orm import Session
 
 from backend.core import get_db, get_settings
 from backend.core.models import FuenteWeb, LogScraping
+from backend.scraping.engine import ScrapingEngine
 
 router = APIRouter()
 settings = get_settings()
@@ -183,137 +186,101 @@ def delete_fuente(
     return {"message": "Fuente eliminada correctamente"}
 
 
-@router.post("/test-source")
-@router.post("/test-source")
-async def test_source(test_data: dict, current_user: str = Depends(verify_token)):
+@router.post("/execute-scraping")
+async def execute_real_scraping(
+    test_data: dict, 
+    current_user: str = Depends(verify_token),
+    db: Session = Depends(get_db)
+):
     """
-    Testear extracción básica sin importaciones complejas
+    EJECUTAR SCRAPING REAL CON PIPELINE COMPLETO DE AGENTES
     """
-    import asyncio
-    from urllib.parse import urlparse
+    print("="*50)
+    print(f"🚀 [ADMIN] INICIANDO TEST DE SCRAPING. Datos recibidos:")
+    print(test_data)
+    print("="*50)
     
     try:
+        # Obtener URL y configuración
         url = test_data.get("url", "")
         tipo = test_data.get("tipo", "HTML")
         
         if not url:
-            return {
-                "estado": "error",
-                "error": "URL requerida",
-                "eventos_encontrados": 0,
-                "preview_eventos": [],
-                "errores": ["URL no proporcionada"],
-            }
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="URL es requerida para el test",
+            )
         
-        # Validar URL
-        parsed = urlparse(url)
-        if not parsed.scheme or not parsed.netloc:
-            return {
-                "estado": "error",
-                "error": "URL inválida",
-                "eventos_encontrados": 0,
-                "preview_eventos": [],
-                "errores": ["Formato de URL inválido"],
-            }
+        # INICIALIZAR EL SCRAPING ENGINE REAL
+        print(f"🔧 [ADMIN] Initializing ScrapingEngine...")
+        scraping_engine = ScrapingEngine()
         
-        # Test básico de conectividad con requests
-        import requests
-        from datetime import datetime
+        # EJECUTAR EL TEST REAL CON AGENTES
+        print(f"🎯 [ADMIN] Executing real agent pipeline for URL: {url}")
         
-        start_time = datetime.now()
-        
-        # Hacer petición simple
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (compatible; EventBot/1.0)'
+        configuracion_test = {
+            "url": url,
+            "tipo": tipo,
+            "schema_extraccion": test_data.get("schema_extraccion", {}),
+            "mapeo_campos": test_data.get("mapeo_campos", {}),
+            "configuracion_scraping": test_data.get("configuracion_scraping", {})
         }
         
-        response = requests.get(url, headers=headers, timeout=10)
-        response.raise_for_status()
+        # ESTO EJECUTA EL PIPELINE COMPLETO
+        result = await scraping_engine.test_fuente(configuracion_test)
         
-        # Simular análisis básico
-        content = response.text.lower()
+        print(f"✅ [ADMIN] Test de scraping completado. Resultado:")
+        print(result)
+        print("="*50)
         
-        # Buscar indicadores de eventos
-        event_indicators = ['evento', 'actividad', 'taller', 'curso', 'programa']
-        found_indicators = [word for word in event_indicators if word in content]
+        return result
         
-        # Buscar fechas básicas
-        import re
-        date_pattern = r'\d{1,2}[/-]\d{1,2}[/-]\d{4}'
-        dates_found = len(re.findall(date_pattern, content))
-        
-        end_time = datetime.now()
-        duration = (end_time - start_time).total_seconds()
-        
-        # Eventos simulados basados en análisis
-        events_count = min(len(found_indicators) + dates_found // 2, 5)
-        
-        preview_events = []
-        for i in range(min(events_count, 3)):
-            preview_events.append({
-                "titulo": f"Evento detectado {i+1}",
-                "fecha_inicio": "2025-02-01",
-                "precio": "Por determinar",
-                "ubicacion": "Madrid",
-                "extraction_method": "basic_test"
-            })
-        
-        return {
-            "estado": "success",
-            "eventos_encontrados": events_count,
-            "preview_eventos": preview_events,
-            "tiempo_ejecucion": duration,
-            "errores": [],
-            "pipeline_decision": "BASIC_TEST",
-            "decision_reasoning": f"Test básico completado. Detectados {len(found_indicators)} indicadores de eventos.",
-            "quality_score": 0.8,
-            "scraping_strategy": "basic_connectivity_test",
-            "agent_metadata": {
-                "content_length": len(content),
-                "indicators_found": found_indicators,
-                "dates_detected": dates_found,
-                "response_status": response.status_code
-            }
-        }
-        
-    except requests.RequestException as e:
-        return {
-            "estado": "error",
-            "error": f"Error de conectividad: {str(e)}",
-            "eventos_encontrados": 0,
-            "preview_eventos": [],
-            "errores": [f"No se pudo conectar a {url}: {str(e)}"],
-        }
     except Exception as e:
-        return {
-            "estado": "error", 
-            "error": str(e),
-            "eventos_encontrados": 0,
-            "preview_eventos": [],
-            "errores": [str(e)],
-        }
+        print(f"💥 [ADMIN] ERROR CATASTRÓFICO EN /execute-scraping:")
+        traceback.print_exc()  # Imprimir el traceback completo
+        print("="*50)
+        
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error ejecutando pipeline: {str(e)}"
+        )
+
 
 @router.post("/trigger-update")
-def trigger_update(
-    fuente_id: Optional[int] = None,
+async def trigger_update(
+    request_data: dict = {},
     current_user: str = Depends(verify_token),
     db: Session = Depends(get_db),
 ):
     """
-    Forzar actualización de una fuente específica o todas
+    EJECUTAR SCRAPING REAL PARA UNA FUENTE O TODAS
     """
-    # TODO: Implementar trigger de actualización
-    # Esto se implementará cuando tengamos el scheduler
-
-    if fuente_id:
-        fuente = db.query(FuenteWeb).filter(FuenteWeb.id == fuente_id).first()
-        if not fuente:
-            raise HTTPException(status_code=404, detail="Fuente no encontrada")
-        message = f"Actualización forzada para fuente '{fuente.nombre}'"
-    else:
-        message = "Actualización forzada para todas las fuentes activas"
-
-    return {"message": message}
+    fuente_id = request_data.get("fuente_id") if request_data else None
+    print(f"🚀 [ADMIN] Triggering real scraping update. Fuente ID: {fuente_id}")
+    
+    try:
+        # INICIALIZAR EL SCRAPING ENGINE REAL
+        scraping_engine = ScrapingEngine()
+        
+        # EJECUTAR SCRAPING REAL
+        if fuente_id:
+            print(f"🎯 [ADMIN] Executing scraping for specific source: {fuente_id}")
+            resultado = await scraping_engine.execute_scraping(fuente_id)
+        else:
+            print(f"🎯 [ADMIN] Executing scraping for ALL active sources")
+            resultado = await scraping_engine.execute_scraping()
+        
+        print(f"✅ [ADMIN] Scraping execution completed: {resultado}")
+        
+        return {
+            "message": "Scraping ejecutado correctamente",
+            "resultado": resultado
+        }
+        
+    except Exception as e:
+        error_msg = f"Error en trigger update: {str(e)}"
+        print(f"💥 [ADMIN] {error_msg}")
+        raise HTTPException(status_code=500, detail=error_msg)
 
 
 @router.get("/logs")

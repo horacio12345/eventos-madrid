@@ -1,4 +1,4 @@
-# backend/agents/orchestrator.py
+# backend/agents/orchestrator.py - Versión con debug completo
 
 """
 Scraping Agents Orchestrator - Coordinates complete flow
@@ -39,6 +39,9 @@ class ScrapingState(TypedDict):
     supervision_reasoning: str
     approved_events: List[Dict]
     rejected_events: List[Dict]
+
+    # VALIDATION RESULTS - CRÍTICO para el fix
+    validation_results: Dict
 
     # General metadata
     execution_start: str
@@ -114,6 +117,8 @@ class ScrapingOrchestrator:
         """
         Execute complete scraping pipeline with validation
         """
+        print(f"🚀 [DEBUG] Starting pipeline for URL: {url}")
+        
         # Validate required inputs
         if not url or not url.startswith(("http://", "https://")):
             raise ValueError("Invalid URL provided")
@@ -121,7 +126,7 @@ class ScrapingOrchestrator:
         if not tipo or tipo not in ["HTML", "PDF", "IMAGE"]:
             raise ValueError("Invalid tipo provided")
 
-        # Initialize state
+        # Initialize state with ALL required fields
         initial_state = ScrapingState(
             url=url,
             tipo=tipo,
@@ -140,24 +145,50 @@ class ScrapingOrchestrator:
             supervision_reasoning="",
             approved_events=[],
             rejected_events=[],
+            # CRÍTICO: Inicializar validation_results SIEMPRE
+            validation_results={
+                "quality_score": 0.0,
+                "total_extracted": 0,
+                "total_validated": 0,
+                "approval_rate": 0.0
+            },
             execution_start=datetime.now().isoformat(),
             execution_end="",
             total_duration=0.0,
         )
 
+        print(f"🔧 [DEBUG] Initial state validation_results: {initial_state['validation_results']}")
+
         try:
             # Execute graph
             start_time = datetime.now()
+            print(f"🎯 [DEBUG] About to invoke graph...")
+            
             final_state = await self.graph.ainvoke(initial_state)
+            
+            print(f"✅ [DEBUG] Graph execution completed. Final state keys: {list(final_state.keys())}")
+            print(f"🔍 [DEBUG] Final state validation_results: {final_state.get('validation_results', 'MISSING!')}")
+            
             end_time = datetime.now()
 
             # Update timing
             final_state["execution_end"] = end_time.isoformat()
             final_state["total_duration"] = (end_time - start_time).total_seconds()
 
+            # ENSURE validation_results exists before returning
+            if "validation_results" not in final_state:
+                print(f"❌ [DEBUG] validation_results MISSING in final_state! Adding default...")
+                final_state["validation_results"] = {
+                    "quality_score": 0.0,
+                    "total_extracted": 0,
+                    "total_validated": 0,
+                    "approval_rate": 0.0
+                }
+
             return final_state
 
         except Exception as e:
+            print(f"💥 [DEBUG] Pipeline execution failed: {str(e)}")
             # Handle catastrophic failures
             error_state = initial_state.copy()
             error_state.update(
@@ -167,37 +198,104 @@ class ScrapingOrchestrator:
                     "scraping_errors": [str(e)],
                     "execution_end": datetime.now().isoformat(),
                     "total_duration": (datetime.now() - start_time).total_seconds(),
+                    # ASEGURAR que validation_results existe incluso en errores
+                    "validation_results": {
+                        "quality_score": 0.0,
+                        "total_extracted": 0,
+                        "total_validated": 0,
+                        "approval_rate": 0.0
+                    }
                 }
             )
+            print(f"🩹 [DEBUG] Error state validation_results: {error_state['validation_results']}")
             return error_state
 
     async def _scraping_node(self, state: ScrapingState) -> ScrapingState:
         """Scraping node with error handling"""
         try:
-            return await self.scraping_agent.analyze_and_scrape(state)
+            print(f"🔍 [DEBUG] Scraping node - input state validation_results: {state.get('validation_results', 'MISSING!')}")
+            result = await self.scraping_agent.analyze_and_scrape(state)
+            print(f"🔍 [DEBUG] Scraping node - output state validation_results: {result.get('validation_results', 'MISSING!')}")
+            return result
         except Exception as e:
+            print(f"💥 [DEBUG] Scraping node error: {str(e)}")
             state["scraping_errors"].append(f"Scraping node error: {str(e)}")
+            # ENSURE validation_results exists
+            if "validation_results" not in state:
+                state["validation_results"] = {
+                    "quality_score": 0.0,
+                    "total_extracted": 0,
+                    "total_validated": 0,
+                    "approval_rate": 0.0
+                }
             return state
 
     async def _processing_node(self, state: ScrapingState) -> ScrapingState:
         """Processing node with error handling"""
         try:
-            return await self.processing_agent.process_data(state)
+            print(f"⚙️ [DEBUG] Processing node - input state validation_results: {state.get('validation_results', 'MISSING!')}")
+            result = await self.processing_agent.process_data(state)
+            
+            # ACTUALIZAR validation_results desde processing metadata
+            if "processing_metadata" in result:
+                metadata = result["processing_metadata"]
+                result["validation_results"] = {
+                    "quality_score": 1.0 - metadata.get("rejection_rate", 0.0),
+                    "total_extracted": metadata.get("total_raw", 0),
+                    "total_validated": metadata.get("validated", 0),
+                    "approval_rate": 1.0 - metadata.get("rejection_rate", 0.0)
+                }
+                print(f"⚙️ [DEBUG] Processing node - updated validation_results: {result['validation_results']}")
+            else:
+                # Ensure validation_results exists even if no metadata
+                if "validation_results" not in result:
+                    result["validation_results"] = state.get("validation_results", {
+                        "quality_score": 0.0,
+                        "total_extracted": 0,
+                        "total_validated": 0,
+                        "approval_rate": 0.0
+                    })
+                print(f"⚙️ [DEBUG] Processing node - fallback validation_results: {result['validation_results']}")
+            
+            return result
         except Exception as e:
+            print(f"💥 [DEBUG] Processing node error: {str(e)}")
             state["processing_errors"].append(f"Processing node error: {str(e)}")
+            # ENSURE validation_results exists in errors
+            if "validation_results" not in state:
+                state["validation_results"] = {
+                    "quality_score": 0.0,
+                    "total_extracted": 0,
+                    "total_validated": 0,
+                    "approval_rate": 0.0
+                }
             return state
 
     async def _supervision_node(self, state: ScrapingState) -> ScrapingState:
         """Supervision node with error handling"""
         try:
-            return await self.supervisor_agent.supervise_quality(state)
+            print(f"👨‍💼 [DEBUG] Supervision node - input state validation_results: {state.get('validation_results', 'MISSING!')}")
+            result = await self.supervisor_agent.supervise_quality(state)
+            print(f"👨‍💼 [DEBUG] Supervision node - output state validation_results: {result.get('validation_results', 'MISSING!')}")
+            return result
         except Exception as e:
+            print(f"💥 [DEBUG] Supervision node error: {str(e)}")
             state["supervision_decision"] = "ERROR"
             state["supervision_reasoning"] = f"Supervision node error: {str(e)}"
+            # ENSURE validation_results exists
+            if "validation_results" not in state:
+                state["validation_results"] = {
+                    "quality_score": 0.0,
+                    "total_extracted": 0,
+                    "total_validated": 0,
+                    "approval_rate": 0.0
+                }
             return state
 
     async def _error_handler_node(self, state: ScrapingState) -> ScrapingState:
         """Handle pipeline errors gracefully"""
+        print(f"🚨 [DEBUG] Error handler node - input state validation_results: {state.get('validation_results', 'MISSING!')}")
+        
         all_errors = state.get("scraping_errors", []) + state.get(
             "processing_errors", []
         )
@@ -207,7 +305,17 @@ class ScrapingOrchestrator:
             f"Pipeline failed with {len(all_errors)} errors"
         )
         state["approved_events"] = []
-
+        
+        # ENSURE validation_results exists in error handler
+        if "validation_results" not in state:
+            state["validation_results"] = {
+                "quality_score": 0.0,
+                "total_extracted": 0,
+                "total_validated": 0,
+                "approval_rate": 0.0
+            }
+        
+        print(f"🚨 [DEBUG] Error handler node - final validation_results: {state['validation_results']}")
         return state
 
     def _should_continue_to_processing(self, state: ScrapingState) -> str:

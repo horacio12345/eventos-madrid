@@ -1,4 +1,4 @@
-// app/admin/fuentes/page.tsx
+// app/admin/fuentes/page.tsx - USAR PIPELINE REAL
 
 'use client';
 
@@ -10,6 +10,7 @@ import {
   PlayIcon,
   PauseIcon,
   EyeIcon,
+  BoltIcon,
   GlobeAltIcon
 } from '@heroicons/react/24/outline';
 import { useFuentes, api } from '@/lib/api';
@@ -117,10 +118,13 @@ export default function FuentesPage() {
     }
   };
 
-  const handleTestFuente = async (fuente: FuenteWeb) => {
+  // NUEVO: Test con pipeline real
+  const handleTestRealPipeline = async (fuente: FuenteWeb) => {
     try {
       setActionLoading(fuente.id);
       setSelectedFuente(fuente);
+      
+      console.log('🚀 [FRONTEND] Executing REAL pipeline test for:', fuente.nombre);
       
       const testConfig: TestScrapingRequest = {
         url: fuente.url,
@@ -130,11 +134,52 @@ export default function FuentesPage() {
         configuracion_scraping: fuente.configuracion_scraping
       };
       
-      const result = await api.admin.fuentes.test(testConfig);
+      // USAR EL ENDPOINT REAL DEL PIPELINE
+      const response = await fetch('/api/admin/execute-scraping', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(testConfig)
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      
+      console.log('✅ [FRONTEND] Real pipeline result:', result);
       setTestResult(result);
       setShowTestModal(true);
+      
     } catch (error) {
-      setMessage(`Error: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+      console.error('💥 [FRONTEND] Pipeline test error:', error);
+      setMessage(`Error ejecutando pipeline: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  // NUEVO: Ejecutar scraping completo
+  const handleExecuteFullScraping = async (fuente: FuenteWeb) => {
+    if (!confirm(`¿Ejecutar scraping completo para "${fuente.nombre}"? Esto guardará los eventos en la base de datos.`)) return;
+    
+    try {
+      setActionLoading(fuente.id);
+      
+      console.log('🎯 [FRONTEND] Executing full scraping for:', fuente.nombre);
+      
+      const result = await api.admin.scraping.trigger({ fuente_id: fuente.id });
+      
+      console.log('✅ [FRONTEND] Full scraping result:', result);
+      setMessage('Scraping ejecutado correctamente. Revisa los logs para ver los resultados.');
+      refetch(); // Actualizar la lista de fuentes
+      
+    } catch (error) {
+      console.error('💥 [FRONTEND] Full scraping error:', error);
+      setMessage(`Error ejecutando scraping: ${error instanceof Error ? error.message : 'Error desconocido'}`);
     } finally {
       setActionLoading(null);
     }
@@ -223,12 +268,12 @@ export default function FuentesPage() {
                     </div>
 
                     <div className="flex items-center space-x-2 ml-4">
-                      {/* Test */}
+                      {/* Test Pipeline Real */}
                       <button
-                        onClick={() => handleTestFuente(fuente)}
+                        onClick={() => handleTestRealPipeline(fuente)}
                         disabled={actionLoading === fuente.id}
                         className="btn btn-outline btn-sm"
-                        title="Probar fuente"
+                        title="Probar pipeline completo (no guarda datos)"
                       >
                         {actionLoading === fuente.id ? (
                           <LoadingSpinner size="sm" />
@@ -237,11 +282,25 @@ export default function FuentesPage() {
                         )}
                       </button>
 
+                      {/* Ejecutar Scraping Completo */}
+                      <button
+                        onClick={() => handleExecuteFullScraping(fuente)}
+                        disabled={actionLoading === fuente.id}
+                        className="btn btn-primary btn-sm"
+                        title="Ejecutar scraping completo (guarda eventos en BD)"
+                      >
+                        {actionLoading === fuente.id ? (
+                          <LoadingSpinner size="sm" />
+                        ) : (
+                          <BoltIcon className="h-4 w-4" />
+                        )}
+                      </button>
+
                       {/* Activar/Desactivar */}
                       <button
                         onClick={() => handleToggleActive(fuente)}
                         disabled={actionLoading === fuente.id}
-                        className={`btn btn-sm ${fuente.activa ? 'btn-secondary' : 'btn-primary'}`}
+                        className={`btn btn-sm ${fuente.activa ? 'btn-secondary' : 'btn-success'}`}
                         title={fuente.activa ? 'Desactivar' : 'Activar'}
                       >
                         {fuente.activa ? (
@@ -415,59 +474,90 @@ export default function FuentesPage() {
         </div>
       </Modal>
 
-      {/* Modal test resultado */}
+      {/* Modal test resultado - MEJORADO PARA MOSTRAR INFO REAL */}
       <Modal
         isOpen={showTestModal}
         onClose={() => setShowTestModal(false)}
-        title={`Test de ${selectedFuente?.nombre}`}
+        title={`Test Pipeline Real - ${selectedFuente?.nombre}`}
         size="xl"
       >
         {testResult && (
           <div className="space-y-4">
+            {/* Estado del pipeline */}
             <div className={`p-4 rounded-lg ${
               testResult.estado === 'success' 
                 ? 'bg-green-50 border border-green-200' 
+                : testResult.estado === 'warning'
+                ? 'bg-yellow-50 border border-yellow-200'
                 : 'bg-red-50 border border-red-200'
             }`}>
               <h4 className={`font-medium ${
-                testResult.estado === 'success' ? 'text-green-800' : 'text-red-800'
+                testResult.estado === 'success' ? 'text-green-800' : 
+                testResult.estado === 'warning' ? 'text-yellow-800' :
+                'text-red-800'
               }`}>
-                {testResult.estado === 'success' ? '✅ Test exitoso' : '❌ Test fallido'}
+                {testResult.estado === 'success' ? '✅ Pipeline ejecutado exitosamente' : 
+                 testResult.estado === 'warning' ? '⚠️ Pipeline ejecutado con advertencias' :
+                 '❌ Pipeline falló'}
               </h4>
-              <p className={`text-sm mt-1 ${
-                testResult.estado === 'success' ? 'text-green-700' : 'text-red-700'
+              <div className={`text-sm mt-1 space-y-1 ${
+                testResult.estado === 'success' ? 'text-green-700' : 
+                testResult.estado === 'warning' ? 'text-yellow-700' :
+                'text-red-700'
               }`}>
-                {testResult.estado === 'success' 
-                  ? `Se encontraron ${testResult.eventos_encontrados} eventos`
-                  : testResult.error
-                }
-              </p>
+                <p><strong>Eventos encontrados:</strong> {testResult.eventos_encontrados}</p>
+                <p><strong>Decisión del pipeline:</strong> {testResult.pipeline_decision}</p>
+                <p><strong>Estrategia de scraping:</strong> {testResult.scraping_strategy}</p>
+                <p><strong>Quality Score:</strong> {(testResult.quality_score * 100).toFixed(1)}%</p>
+                <p><strong>Tiempo de ejecución:</strong> {testResult.tiempo_ejecucion?.toFixed(2)}s</p>
+              </div>
             </div>
 
+            {/* Reasoning del pipeline */}
+            {testResult.decision_reasoning && (
+              <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
+                <h4 className="font-medium text-blue-800 mb-2">Razonamiento del Pipeline:</h4>
+                <p className="text-sm text-blue-700">{testResult.decision_reasoning}</p>
+              </div>
+            )}
+
+            {/* Preview de eventos */}
             {testResult.preview_eventos && testResult.preview_eventos.length > 0 && (
               <div>
-                <h4 className="font-medium text-gray-900 mb-2">Preview de eventos:</h4>
+                <h4 className="font-medium text-gray-900 mb-2">Eventos extraídos:</h4>
                 <div className="space-y-3 max-h-60 overflow-y-auto">
                   {testResult.preview_eventos.map((evento: any, index: number) => (
                     <div key={index} className="bg-gray-50 p-3 rounded border">
                       <p className="font-medium text-sm">{evento.titulo}</p>
-                      <p className="text-xs text-gray-600">{evento.fecha_inicio}</p>
-                      <p className="text-xs text-gray-600">{evento.precio}</p>
-                      {evento.ubicacion && <p className="text-xs text-gray-600">{evento.ubicacion}</p>}
+                      <p className="text-xs text-gray-600">📅 {evento.fecha_inicio}</p>
+                      <p className="text-xs text-gray-600">💰 {evento.precio}</p>
+                      {evento.ubicacion && <p className="text-xs text-gray-600">📍 {evento.ubicacion}</p>}
+                      {evento.categoria && <p className="text-xs text-blue-600">🏷️ {evento.categoria}</p>}
                     </div>
                   ))}
                 </div>
               </div>
             )}
 
+            {/* Errores del pipeline */}
             {testResult.errores && testResult.errores.length > 0 && (
               <div>
-                <h4 className="font-medium text-red-800 mb-2">Errores:</h4>
-                <ul className="text-sm text-red-700 space-y-1">
+                <h4 className="font-medium text-red-800 mb-2">Errores del pipeline:</h4>
+                <ul className="text-sm text-red-700 space-y-1 max-h-40 overflow-y-auto">
                   {testResult.errores.map((error: string, index: number) => (
-                    <li key={index}>• {error}</li>
+                    <li key={index} className="bg-red-50 p-2 rounded">• {error}</li>
                   ))}
                 </ul>
+              </div>
+            )}
+
+            {/* Metadata del agente */}
+            {testResult.agent_metadata && (
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="font-medium text-gray-800 mb-2">Metadata del Agente:</h4>
+                <pre className="text-xs text-gray-600 overflow-x-auto">
+                  {JSON.stringify(testResult.agent_metadata, null, 2)}
+                </pre>
               </div>
             )}
           </div>

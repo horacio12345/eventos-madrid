@@ -8,7 +8,6 @@ from typing import Dict, List, Optional
 
 import yaml
 from langchain.agents import AgentExecutor, create_react_agent
-from langchain.hub import pull
 from langchain_anthropic import ChatAnthropic
 from langchain_core.prompts import PromptTemplate
 from langchain_openai import ChatOpenAI
@@ -58,21 +57,21 @@ class ScrapingAgent:
     def _create_agent_executor(self):
         """Create agent executor with tools"""
         try:
-            # Get the raw prompt template
+            # Get the raw prompt template from config
             prompt_template = self.config["prompts"]["intelligent_strategy"]
             
             # Format tool descriptions
             tools_description = "\n".join([f"- {tool.name}: {tool.description}" for tool in self.available_tools])
             tool_names = ", ".join([tool.name for tool in self.available_tools])
             
-            # Create prompt with all required variables
+            # Create the proper ReAct prompt template with ALL required variables
             prompt = PromptTemplate(
-                template=prompt_template,
-                input_variables=["url", "declared_type", "config", "tools_description", "agent_scratchpad"],
+                input_variables=["url", "declared_type", "config", "tools_description", "input", "agent_scratchpad"],
                 partial_variables={
                     "tools": tools_description,
                     "tool_names": tool_names
-                }
+                },
+                template=prompt_template
             )
 
             # Create ReAct agent with the prompt template
@@ -107,7 +106,10 @@ class ScrapingAgent:
             # Prepare input for intelligent agent workflow
             agent_input = {
                 "input": self._format_intelligent_input(state),
-                "chat_history": [],
+                "url": state["url"],
+                "declared_type": state["tipo"],
+                "config": state["configuracion_scraping"],
+                "tools_description": self._get_tools_description(),
             }
 
             # Execute agent with new workflow
@@ -180,13 +182,13 @@ class ScrapingAgent:
             state["scraping_errors"].append(f"Enhanced LLM analysis error: {str(e)}")
             return state
 
+    def _get_tools_description(self) -> str:
+        """Get formatted tools description"""
+        return "\n".join([f"- {tool.name}: {tool.description}" for tool in self.available_tools])
+
     def _format_intelligent_input(self, state: Dict) -> str:
         """Format input for intelligent agent workflow"""
-        available_tool_names = [
-            tool.__name__ if hasattr(tool, "__name__") else str(tool)
-            for tool in self.available_tools
-        ]
-
+        
         return f"""
         You are an intelligent scraping agent. Analyze this website and extract events using the available tools.
         
@@ -216,9 +218,6 @@ class ScrapingAgent:
         
         5. VALIDATE (if needed):
            - Use validate_event_relevance() to filter results
-        
-        AVAILABLE TOOLS:
-        {', '.join(available_tool_names)}
         
         Execute this workflow step by step to extract relevant events for seniors in Madrid.
         Focus on finding the most recent and relevant content.
