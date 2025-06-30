@@ -15,13 +15,13 @@ from .base_tool import BaseTool
 
 
 def _parse_url_input(input_data: Union[str, Dict]) -> str:
-    """
-    Parses various input formats from the agent to robustly extract a URL.
-    """
     if isinstance(input_data, dict):
         return input_data.get("url", "")
     if isinstance(input_data, str):
-        # Handles plain URLs and "url='...'" formats
+        # NUEVO: Manejar formato pdf_url="URL"
+        if input_data.startswith('pdf_url="') and input_data.endswith('"'):
+            return input_data[9:-1]
+        # Código existente
         if '=' in input_data:
             parts = input_data.split('=', 1)
             if len(parts) == 2 and parts[0].strip().lower() == 'url':

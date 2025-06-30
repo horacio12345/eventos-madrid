@@ -29,7 +29,10 @@ prompts:
 
     STEP 2: CONTENT EXTRACTION
     Based on Step 1 results:
-    - If PDF links found: Use extract_html_with_pdfs(url="{url}")
+    - **PRIORITY: Look for PDF links first using get_page_links(url="{url}")**
+    - **If ANY links end in .pdf OR contain text like "programa", "actividades", "eventos", "agenda":**
+      **Use read_pdf_content(pdf_url="FOUND_PDF_URL") immediately**
+    - If PDF links found: Use extract_html_with_pdfs(url="{url}")  
     - If HTML events found: Use extract_html_simple(url="{url}", selectors={{"container": ".evento, .event, .actividad"}})
     - Extract the actual content first before analyzing
 

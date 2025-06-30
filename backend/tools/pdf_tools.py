@@ -26,6 +26,9 @@ async def read_pdf_content(pdf_url: str) -> Dict[str, Any]:
         A dictionary containing the success status and the full text of the PDF.
     """
     tool_instance = BaseTool("read_pdf_content", "Read all text from a single PDF")
+
+    if pdf_url.startswith('pdf_url="') and pdf_url.endswith('"'):
+        pdf_url = pdf_url[9:-1]
     
     target_url = _parse_url_input(pdf_url)
     if not target_url:

@@ -7,16 +7,20 @@ from .base_tool import BaseTool
 from .html_tools import get_page_links
 from .pdf_tools import read_pdf_content
 
+# Source-specific tools
+from .source.ssreyes_tools import extract_ssreyes_recent_events
+
 # The final, clean set of tools for the agent.
-# Each tool is simple, robust, and performs a single, well-defined task.
 ALL_TOOLS = [
     get_page_links,
     read_pdf_content,
+    extract_ssreyes_recent_events,
 ]
 
 __all__ = [
     "BaseTool",
-    "get_page_links",
+    "get_page_links", 
     "read_pdf_content",
+    "extract_ssreyes_recent_events",
     "ALL_TOOLS",
 ]
