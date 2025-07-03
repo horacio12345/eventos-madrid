@@ -1,85 +1,45 @@
 # =============================================================================
-# PROYECTO EVENTOS MAYORES - Requirements.txt Actualizado (Junio 2025)
+# PROYECTO EVENTOS MAYORES - Requirements Simplificado (Julio 2025)
+# Solo lo esencial para agentes específicos por fuente (SSReyes, Madrid, etc.)
 # =============================================================================
 
 # ============= CORE FRAMEWORK =============
-fastapi
-uvicorn[standard]
-pydantic
-pydantic-settings
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
 
 # ============= BASE DE DATOS =============
-sqlalchemy
-alembic
-# sqlite3 está incluido en Python standard library
+sqlalchemy>=2.0.0
+# sqlite3 incluido en Python
 
-# ============= SCRAPING INTELIGENTE =============
-# LangChain ecosystem - Versiones compatibles actualizadas
-langchain
-langchain-core
-langchain-community
-langchain-openai
-langchain-anthropic
-langgraph
+# ============= IA Y LANGCHAIN (Solo lo esencial) =============
+langchain>=0.3.0
+langchain-core>=0.3.0
+langchain-openai>=0.3.24
+langchain-anthropic>=0.2.0
+# Eliminado: langgraph (innecesario para agentes específicos)
 
-# Web scraping y automation
-playwright
-beautifulsoup4
-lxml
-requests
-httpx
-
-# PDF processing con Docling (IBM)
-docling
-docling-core
-docling-parse
-
-# OCR y procesamiento de imágenes
-Pillow
-opencv-python
-
-# ============= SCHEDULER Y TAREAS =============
-apscheduler
+# ============= EXTRACCIÓN PDF =============
+docling>=1.0.0
+docling-core>=1.0.0
+# Eliminado: docling-parse (innecesario para caso simple)
 
 # ============= APIs DE IA =============
-# OpenAI - Versión compatible con langchain-openai>=0.3.24
-openai
-anthropic
+openai>=1.51.0
+anthropic>=0.40.0
 
 # ============= UTILIDADES =============
-python-dotenv
-python-multipart
-jinja2
-aiofiles
+python-dotenv>=1.0.0
+python-multipart>=0.0.6
+aiofiles>=23.0.0
+pyyaml>=6.0.1
 
-# ============= TESTING =============
-pytest
-pytest-asyncio
-pytest-playwright
+# ============= AUTENTICACIÓN =============
+PyJWT>=2.8.0
 
-# ============= LOGGING Y MONITORING =============
-loguru
-prometheus-client
-
-# ============= DESARROLLO =============
-black
-isort
-flake8
-mypy
-
-# ============= DEPLOYMENT =============
-gunicorn
-
-# ============= JWT Authentication =============
-PyJWT
-
-# =============================================================================
-# CAMBIOS PRINCIPALES RESPECTO AL ORIGINAL:
-# 
-# 1. OPENAI: 1.59.3 → 1.91.0 (compatible con langchain-openai>=0.3.24)
-# 2. LANGCHAIN-OPENAI: 0.3.24 → 0.3.25 (versión más reciente)
-# 3. LANGCHAIN-CORE: 0.3.66 (actualizada)
-# 4. LANGCHAIN: 0.3.26 (actualizada)
-#
-# VERIFICADO: Todas las versiones son compatibles entre sí
-# =============================================================================
+# ============= DESARROLLO (Opcional) =============
+# Descomenta solo si necesitas:
+# pytest>=7.4.0
+# pytest-asyncio>=0.21.0
+# black>=23.0.0

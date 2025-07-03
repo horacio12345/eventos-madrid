@@ -1,0 +1,56 @@
+# backend/agents/prompts/ssreyes.yaml
+
+source_info:
+  name: "San Sebastián de los Reyes"
+  domain: "ssreyes.org"
+  type: "PDF"
+
+prompts:
+  extraction_prompt: |
+    Extrae TODOS los eventos de este PDF de San Sebastián de los Reyes para personas mayores.
+
+    CONTEXTO ESPECÍFICO SSREYES:
+    - Son eventos del "Centro Municipal de Personas Mayores Gloria Fuertes"
+    - Público objetivo: mayores de 65 años
+    - Formato PDF mensual con calendario de actividades
+
+    REGLAS ESPECÍFICAS SSREYES:
+    1. Las fechas están en formato "DÍA DÍA_SEMANA" (ej: "1 MARTES", "25 VIERNES")
+    2. El mes/año está en el título del PDF (ej: "JULIO y AGOSTO 2025")
+    3. Convierte a formato YYYY-MM-DD usando el mes del título
+    4. Ubicación por defecto: "Centro Municipal de Personas Mayores 'Gloria Fuertes'"
+    5. Precio por defecto: "Gratis" (casi todas las actividades son gratuitas)
+    6. Categoriza según el tipo de actividad
+    7. Para enlace_ubicacion: usar "Centro Municipal de Personas Mayores Gloria Fuertes San Sebastián de los Reyes"
+
+    TIPOS DE ACTIVIDADES COMUNES EN SSREYES:
+    - Talleres (manualidades, informática, idiomas) → Categoría: "Formación"
+    - Charlas y conferencias → Categoría: "Formación"  
+    - Actividades físicas (gimnasia, bailes) → Categoría: "Deporte y Salud"
+    - Excursiones y visitas → Categoría: "Paseos y Excursiones"
+    - Actividades culturales (teatro, música) → Categoría: "Cultura"
+    - Juegos y actividades sociales → Categoría: "Ocio y Social"
+
+    Devuelve JSON:
+    {{
+        "eventos": [
+            {{
+                "titulo": "...",
+                "fecha_inicio": "YYYY-MM-DD",
+                "fecha_fin": null,
+                "categoria": "...",
+                "precio": "Gratis",
+                "ubicacion": "Centro Municipal de Personas Mayores 'Gloria Fuertes'",
+                "enlace_ubicacion": "https://www.google.com/maps/search/Centro+Municipal+de+Personas+Mayores+Gloria+Fuertes+San+Sebastián+de+los+Reyes",
+                "descripcion": "..."
+            }}
+        ]
+    }}
+
+    TEXTO DEL PDF: {texto}
+
+extraction_config:
+  default_location: "Centro Municipal de Personas Mayores 'Gloria Fuertes'"
+  default_price: "Gratis"
+  default_city: "San Sebastián de los Reyes"
+  maps_search_base: "https://www.google.com/maps/search/"

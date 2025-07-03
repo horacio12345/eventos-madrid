@@ -1,6 +1,6 @@
-# backend/api/routes/__init__.py
+# api/routes/__init__.py
 
 """
-Routers API
+Routers API simplificados
 """
-from . import admin, eventos, health
+from . import admin, eventos

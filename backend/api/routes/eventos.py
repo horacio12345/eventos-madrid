@@ -1,21 +1,26 @@
-# backend/api/routes/eventos.py
+# api/routes/eventos.py
 
 """
-Endpoints públicos de eventos
+Endpoints públicos para eventos
 """
 from datetime import datetime
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import and_, func  # <-- AGREGAR func aquí
+from sqlalchemy import and_, func
 from sqlalchemy.orm import Session
 
-from backend.core import Evento, get_db
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+
+from core import get_db
+from core.models import Evento
 
 router = APIRouter()
 
 
-@router.get("/eventos", response_model=List[dict])
+@router.get("/eventos")
 def get_eventos(
     categoria: Optional[str] = Query(None, description="Filtrar por categoría"),
     limite: int = Query(100, le=1000, description="Límite de eventos"),
@@ -79,10 +84,8 @@ def get_evento_detail(evento_id: int, db: Session = Depends(get_db)):
         "descripcion": evento.descripcion,
         "fuente_nombre": evento.fuente_nombre,
         "url_original": evento.url_original,
-        "hash_contenido": evento.hash_contenido,
         "ultima_actualizacion": evento.ultima_actualizacion.isoformat(),
         "datos_extra": evento.datos_extra or {},
-        "datos_raw": evento.datos_raw or {} if hasattr(evento, "datos_raw") else {},
     }
 
 
@@ -92,7 +95,7 @@ def get_categorias(db: Session = Depends(get_db)):
     Obtener lista de categorías disponibles con conteo de eventos
     """
     result = (
-        db.query(Evento.categoria, func.count(Evento.id).label("total"))  # <-- CAMBIAR db.func por func
+        db.query(Evento.categoria, func.count(Evento.id).label("total"))
         .filter(
             and_(Evento.activo == True, Evento.fecha_inicio >= datetime.now().date())
         )
