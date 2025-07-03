@@ -9,9 +9,10 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from agents.ssreyes_agent import SSReyesAgent
 from core import get_db
 from core.models import FuenteWeb
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+from agents.ssreyes_agent import SSReyesAgent
 
 router = APIRouter()
 

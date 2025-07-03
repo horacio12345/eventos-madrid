@@ -15,7 +15,6 @@ import {
 } from '@heroicons/react/24/outline';
 import { useLogs, useFuentes } from '@/lib/api';
 import { formatDateTime, formatDuration } from '@/lib/utils';
-import type { LogScraping } from '@/lib/types';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import Alert from '@/components/Alert';
 
@@ -278,7 +277,7 @@ export default function LogsPage() {
         </h3>
         <ul className="text-sm text-blue-800 space-y-1">
           <li>• Los logs se generan automáticamente cada vez que se ejecuta scraping</li>
-          <li>• Los logs con estado "Exitoso" muestran cuántos eventos se extrajeron</li>
+          <li>• Los logs con estado &quot;Exitoso&quot; muestran cuántos eventos se extrajeron</li>
           <li>• Los logs con error incluyen detalles técnicos para debugging</li>
           <li>• Los logs se mantienen por tiempo limitado para optimizar el rendimiento</li>
         </ul>

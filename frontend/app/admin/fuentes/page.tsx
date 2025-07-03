@@ -9,15 +9,22 @@ import {
   TrashIcon,
   PlayIcon,
   PauseIcon,
-  EyeIcon,
   DocumentArrowUpIcon
 } from '@heroicons/react/24/outline';
-import { useFuentes, api } from '@/lib/api';
 import { formatDateTime } from '@/lib/utils';
-import type { FuenteWeb } from '@/lib/types';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import Alert from '@/components/Alert';
 import Modal from '@/components/Modal';
+import { useFuentes, api } from '@/lib/api';
+
+interface FuenteWeb {
+  id: number;
+  nombre: string;
+  activa: boolean;
+  ultima_ejecucion?: string;
+  ultimo_estado?: string;
+  eventos_encontrados_ultima_ejecucion?: number;
+}
 
 interface CreateAgenteRequest {
   nombre: string;
@@ -190,7 +197,7 @@ export default function AgentesPage() {
                         {agente.ultima_ejecucion && (
                           <p><strong>Último procesamiento:</strong> {formatDateTime(agente.ultima_ejecucion)}</p>
                         )}
-                        {agente.eventos_encontrados_ultima_ejecucion > 0 && (
+                        {(agente.eventos_encontrados_ultima_ejecucion || 0) > 0 && (
                           <p><strong>Eventos procesados:</strong> {agente.eventos_encontrados_ultima_ejecucion}</p>
                         )}
                       </div>

@@ -2,22 +2,18 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { 
   CalendarIcon,
   GlobeAltIcon,
   CheckCircleIcon,
-  XCircleIcon,
-  ClockIcon,
   PlayIcon,
-  ArrowPathIcon,
   ChartBarIcon,
   DocumentArrowUpIcon
 } from '@heroicons/react/24/outline';
 import { useEventos, useFuentes } from '@/lib/api';
-import { api } from '@/lib/api';
-import { formatDateTime, getCategoriaConfig, formatPrice } from '@/lib/utils';
+import { getCategoriaConfig } from '@/lib/utils';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import Alert from '@/components/Alert';
 
@@ -28,17 +24,6 @@ export default function DashboardPage() {
   // Cargar datos
   const { data: eventos, loading: eventosLoading, refetch: refetchEventos } = useEventos();
   const { data: fuentes, loading: fuentesLoading, refetch: refetchFuentes } = useFuentes();
-
-  // Estadísticas calculadas
-  const stats = {
-    totalEventos: eventos?.length || 0,
-    eventosActivos: eventos?.filter(e => e.activo).length || 0,
-    totalFuentes: fuentes?.length || 0,
-    fuentesActivas: fuentes?.filter(f => f.activa).length || 0,
-    ultimoProcesamiento: null, // Se calculará después
-    procesamientosExitosos: 0, // Se calculará después
-    procesamientosConError: 0 // Se calculará después
-  };
 
   // Categorías con eventos
   const eventosPorCategoria = eventos?.reduce((acc, evento) => {
@@ -92,7 +77,7 @@ export default function DashboardPage() {
       )}
 
       {/* Estadísticas principales */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         {/* Total Eventos */}
         <div className="bg-white rounded-lg shadow-card p-6 border border-gray-100">
           <div className="flex items-center">
@@ -102,22 +87,7 @@ export default function DashboardPage() {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-500">Total Eventos</p>
               <p className="text-2xl font-bold text-gray-900">
-                {eventosLoading ? <LoadingSpinner size="sm" /> : stats.totalEventos}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Eventos Activos */}
-        <div className="bg-white rounded-lg shadow-card p-6 border border-gray-100">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <CheckCircleIcon className="h-8 w-8 text-green-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Eventos Activos</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {eventosLoading ? <LoadingSpinner size="sm" /> : stats.eventosActivos}
+                {eventosLoading ? <LoadingSpinner size="sm" /> : (eventos?.length || 0)}
               </p>
             </div>
           </div>
@@ -132,7 +102,7 @@ export default function DashboardPage() {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-500">Total Agentes</p>
               <p className="text-2xl font-bold text-gray-900">
-                {fuentesLoading ? <LoadingSpinner size="sm" /> : stats.totalFuentes}
+                {fuentesLoading ? <LoadingSpinner size="sm" /> : (fuentes?.length || 0)}
               </p>
             </div>
           </div>
@@ -147,7 +117,7 @@ export default function DashboardPage() {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-500">Agentes Activos</p>
               <p className="text-2xl font-bold text-gray-900">
-                {fuentesLoading ? <LoadingSpinner size="sm" /> : stats.fuentesActivas}
+                {fuentesLoading ? <LoadingSpinner size="sm" /> : (fuentes?.filter(f => f.activa).length || 0)}
               </p>
             </div>
           </div>
@@ -193,14 +163,14 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-500">Eventos en base de datos:</span>
               <span className="text-sm font-medium text-gray-900">
-                {stats.totalEventos}
+                {eventos?.length || 0}
               </span>
             </div>
             
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-500">Agentes configurados:</span>
               <span className="text-sm font-medium text-blue-600">
-                {stats.totalFuentes}
+                {fuentes?.length || 0}
               </span>
             </div>
             

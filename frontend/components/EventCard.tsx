@@ -21,7 +21,7 @@ import {
   isTomorrow,
   isThisWeek
 } from '@/lib/utils';
-import type { Evento } from '@/lib/types';
+import type { Evento } from '@/lib/api';
 
 interface EventCardProps {
   evento: Evento;

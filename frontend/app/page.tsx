@@ -14,9 +14,18 @@ import {
   filterEventos,
   debounce
 } from '@/lib/utils';
-import type { Evento, EventoCategoria, EventoFilter } from '@/lib/types';
+
 import EventCard from '@/components/EventCard';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import type { Evento } from '@/lib/api';
+
+type EventoCategoria = 'Cultura' | 'Deporte y Salud' | 'Formación' | 'Cine' | 'Paseos y Excursiones' | 'Ocio y Social';
+
+interface EventoFilter {
+  categoria?: EventoCategoria;
+  precio_max?: number;
+  busqueda?: string;
+}
 
 export default function HomePage() {
   // Estado para filtros
