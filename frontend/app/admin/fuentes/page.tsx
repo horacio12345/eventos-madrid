@@ -9,13 +9,16 @@ import {
   TrashIcon,
   PlayIcon,
   PauseIcon,
-  DocumentArrowUpIcon
+  DocumentArrowUpIcon,
+  CheckCircleIcon,
+  XMarkIcon
 } from '@heroicons/react/24/outline';
 import { formatDateTime } from '@/lib/utils';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import Alert from '@/components/Alert';
 import Modal from '@/components/Modal';
 import { useFuentes, api } from '@/lib/api';
+import FileUpload from '@/components/FileUpload';
 
 interface FuenteWeb {
   id: number;
@@ -39,7 +42,24 @@ export default function AgentesPage() {
   const [actionLoading, setActionLoading] = useState<number | null>(null);
   const [message, setMessage] = useState('');
 
-  // Crear nuevo agente - SIN TIPO PREDEFINIDO
+  // Estado para upload y procesamiento
+  const [uploadState, setUploadState] = useState<{
+    file: File | null;
+    uploading: boolean;
+    processing: boolean;
+    events: any[];
+    error: string;
+    step: 'upload' | 'preview' | 'completed';
+  }>({
+    file: null,
+    uploading: false,
+    processing: false,
+    events: [],
+    error: '',
+    step: 'upload'
+  });
+
+  // Crear nuevo agente
   const [newAgente, setNewAgente] = useState<CreateAgenteRequest>({
     nombre: '',
     activa: false
@@ -50,7 +70,7 @@ export default function AgentesPage() {
       setActionLoading(-1);
       const agenteData = {
         nombre: newAgente.nombre,
-        url: 'manual-upload', // Sin prefijo de tipo
+        url: 'manual-upload',
         tipo: 'AGENTE',
         activa: newAgente.activa,
         frecuencia_actualizacion: '0 9 * * 1'
@@ -132,6 +152,95 @@ export default function AgentesPage() {
   const handleUploadAndProcess = async (agente: FuenteWeb) => {
     setSelectedAgente(agente);
     setShowUploadModal(true);
+    setUploadState({
+      file: null,
+      uploading: false,
+      processing: false,
+      events: [],
+      error: '',
+      step: 'upload'
+    });
+  };
+
+  // NUEVA FUNCIÓN: Manejar selección de archivo
+  const handleFileUpload = async (file: File) => {
+    if (!selectedAgente) return;
+
+    setUploadState(prev => ({ 
+      ...prev, 
+      file, 
+      uploading: true, 
+      error: '' 
+    }));
+
+    try {
+      // 1. Subir archivo
+      const uploadResult = await api.admin.uploadFile(file, selectedAgente.nombre);
+      
+      setUploadState(prev => ({ 
+        ...prev, 
+        uploading: false, 
+        processing: true 
+      }));
+
+      // 2. Procesar con agente específico (por ahora SSReyes)
+      const events = await api.admin.extractEvents('ssreyes', { 
+        pdf_url: uploadResult.file_path 
+      });
+
+      setUploadState(prev => ({
+        ...prev,
+        processing: false,
+        events: events.eventos || [],
+        step: 'preview'
+      }));
+
+    } catch (error) {
+      setUploadState(prev => ({
+        ...prev,
+        uploading: false,
+        processing: false,
+        error: error instanceof Error ? error.message : 'Error procesando archivo'
+      }));
+    }
+  };
+
+  // NUEVA FUNCIÓN: Confirmar y guardar eventos
+  const handleConfirmEvents = async () => {
+    try {
+      setUploadState(prev => ({ ...prev, processing: true }));
+      
+      // Los eventos ya se guardaron en el backend durante el procesamiento
+      setMessage(`${uploadState.events.length} eventos procesados exitosamente`);
+      setUploadState(prev => ({ ...prev, step: 'completed', processing: false }));
+      
+      // Actualizar lista de agentes
+      refetch();
+      
+      // Cerrar modal después de 2 segundos
+      setTimeout(() => {
+        setShowUploadModal(false);
+      }, 2000);
+
+    } catch (error) {
+      setUploadState(prev => ({
+        ...prev,
+        processing: false,
+        error: error instanceof Error ? error.message : 'Error guardando eventos'
+      }));
+    }
+  };
+
+  const handleCloseUploadModal = () => {
+    setShowUploadModal(false);
+    setUploadState({
+      file: null,
+      uploading: false,
+      processing: false,
+      events: [],
+      error: '',
+      step: 'upload'
+    });
   };
 
   return (
@@ -278,7 +387,7 @@ export default function AgentesPage() {
         </div>
       )}
 
-      {/* Modal crear/editar agente - SIMPLIFICADO */}
+      {/* Modal crear/editar agente */}
       <Modal
         isOpen={showCreateModal}
         onClose={() => {
@@ -340,19 +449,107 @@ export default function AgentesPage() {
         </div>
       </Modal>
 
-      {/* Modal upload - placeholder */}
+      {/* Modal upload y procesamiento */}
       <Modal
         isOpen={showUploadModal}
-        onClose={() => setShowUploadModal(false)}
-        title={`Subir Archivo - ${selectedAgente?.nombre}`}
+        onClose={handleCloseUploadModal}
+        title={`Procesar Archivo - ${selectedAgente?.nombre}`}
         size="lg"
       >
-        <div className="text-center py-8">
-          <DocumentArrowUpIcon className="mx-auto h-12 w-12 text-gray-400" />
-          <h3 className="mt-2 text-sm font-medium text-gray-900">Upload en desarrollo</h3>
-          <p className="mt-1 text-sm text-gray-500">
-            Aquí podrás subir archivos y el sistema detectará automáticamente qué estrategia usar.
-          </p>
+        <div className="space-y-6">
+          {/* Paso 1: Upload */}
+          {uploadState.step === 'upload' && (
+            <div>
+              <FileUpload 
+                onFileUpload={handleFileUpload}
+                acceptedTypes={['.pdf', '.jpg', '.jpeg', '.png']}
+                maxSizeMB={10}
+              />
+              
+              {(uploadState.uploading || uploadState.processing) && (
+                <div className="mt-4 text-center">
+                  <LoadingSpinner size="lg" />
+                  <p className="mt-2 text-gray-600">
+                    {uploadState.uploading ? 'Subiendo archivo...' : 'Procesando eventos...'}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Paso 2: Preview de eventos */}
+          {uploadState.step === 'preview' && (
+            <div>
+              <div className="mb-4">
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  Eventos Encontrados: {uploadState.events.length}
+                </h3>
+                <p className="text-sm text-gray-600">
+                  Revisa los eventos extraídos antes de guardarlos en la base de datos.
+                </p>
+              </div>
+
+              <div className="max-h-96 overflow-y-auto space-y-3">
+                {uploadState.events.map((event, index) => (
+                  <div key={index} className="p-3 border border-gray-200 rounded-lg">
+                    <h4 className="font-medium text-gray-900">{event.titulo}</h4>
+                    <p className="text-sm text-gray-600 mt-1">
+                      📅 {event.fecha_inicio} | 💰 {event.precio} | 📍 {event.ubicacion}
+                    </p>
+                    {event.descripcion && (
+                      <p className="text-xs text-gray-500 mt-2 line-clamp-2">
+                        {event.descripcion}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex justify-end space-x-3 pt-4">
+                <button
+                  onClick={handleCloseUploadModal}
+                  className="btn btn-secondary"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleConfirmEvents}
+                  disabled={uploadState.processing}
+                  className="btn btn-primary"
+                >
+                  {uploadState.processing ? (
+                    <LoadingSpinner size="sm" />
+                  ) : (
+                    <CheckCircleIcon className="h-4 w-4 mr-2" />
+                  )}
+                  Guardar {uploadState.events.length} Eventos
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Paso 3: Completado */}
+          {uploadState.step === 'completed' && (
+            <div className="text-center py-8">
+              <CheckCircleIcon className="mx-auto h-16 w-16 text-green-500 mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                ¡Procesamiento Completado!
+              </h3>
+              <p className="text-gray-600">
+                {uploadState.events.length} eventos guardados exitosamente
+              </p>
+            </div>
+          )}
+
+          {/* Error */}
+          {uploadState.error && (
+            <Alert
+              type="error"
+              message={uploadState.error}
+              dismissible
+              onDismiss={() => setUploadState(prev => ({ ...prev, error: '' }))}
+            />
+          )}
         </div>
       </Modal>
     </div>

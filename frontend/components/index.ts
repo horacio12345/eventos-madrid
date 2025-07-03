@@ -5,3 +5,4 @@ export { default as EventCard } from './EventCard';
 export { default as LoadingSpinner } from './LoadingSpinner';
 export { default as Alert } from './Alert';
 export { default as Modal } from './Modal';
+export { default as FileUpload } from './FileUpload';

@@ -13,6 +13,8 @@ from core import get_db
 from core.models import FuenteWeb
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 from agents.ssreyes_agent import SSReyesAgent
+from fastapi import UploadFile, File, Form
+
 
 router = APIRouter()
 
@@ -104,3 +106,43 @@ def create_fuente(request: dict, db: Session = Depends(get_db)):
 def login_placeholder():
     """Placeholder - mantener compatibilidad"""
     return {"message": "Login functionality needed"}
+
+
+    # ============= UPLOAD =============
+
+@router.post("/upload")
+async def upload_file(
+    file: UploadFile = File(...),
+    agent_type: str = Form(...)
+):
+    """
+    Subir archivo para procesamiento por agente específico
+    """
+    try:
+        # Validar tipo de archivo
+        if not file.filename.lower().endswith(('.pdf', '.jpg', '.jpeg', '.png')):
+            raise HTTPException(status_code=400, detail="Tipo de archivo no soportado")
+        
+        # Crear directorio temporal si no existe
+        import tempfile
+        import os
+        
+        temp_dir = "temp_uploads"
+        os.makedirs(temp_dir, exist_ok=True)
+        
+        # Guardar archivo temporalmente
+        file_path = os.path.join(temp_dir, f"{agent_type}_{file.filename}")
+        
+        with open(file_path, "wb") as buffer:
+            content = await file.read()
+            buffer.write(content)
+        
+        return {
+            "message": "Archivo subido exitosamente",
+            "file_path": file_path,
+            "agent_type": agent_type,
+            "filename": file.filename
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
