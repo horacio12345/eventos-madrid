@@ -6,7 +6,7 @@ install:
 
 # Iniciar backend
 run-backend:
-	cd backend && PYTHONPATH=/Users/horacio/AI/eventos-madrid python -m uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
+	cd backend && uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
 
 # Iniciar frontend (si usas Node.js)
 run-frontend:

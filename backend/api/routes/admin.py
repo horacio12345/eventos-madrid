@@ -8,7 +8,10 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
 from agents.ssreyes_agent import SSReyesAgent
+from core import get_db
+from core.models import FuenteWeb
 
 router = APIRouter()
 
@@ -51,13 +54,52 @@ async def get_ssreyes_config():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# Mantener endpoints existentes si los hay...
+# ============= FUENTES CRUD =============
+
+@router.get("/fuentes")
+def get_fuentes(db: Session = Depends(get_db)):
+    """Obtener todas las fuentes configuradas"""
+    fuentes = db.query(FuenteWeb).all()
+    return [
+        {
+            "id": f.id,
+            "nombre": f.nombre,
+            "url": f.url,
+            "tipo": f.tipo,
+            "activa": f.activa,
+            "frecuencia_actualizacion": f.frecuencia_actualizacion,
+            "ultima_ejecucion": f.ultima_ejecucion,
+            "ultimo_estado": f.ultimo_estado,
+            "eventos_encontrados_ultima_ejecucion": f.eventos_encontrados_ultima_ejecucion or 0
+        }
+        for f in fuentes
+    ]
+
+@router.post("/fuentes")
+def create_fuente(request: dict, db: Session = Depends(get_db)):
+    """Crear nueva fuente"""
+    try:
+        fuente = FuenteWeb(
+            nombre=request["nombre"],
+            url=request["url"],
+            tipo=request["tipo"],
+            activa=request.get("activa", False),
+            frecuencia_actualizacion=request.get("frecuencia_actualizacion", "0 9 * * 1"),
+            ultimo_estado="pending"
+        )
+        db.add(fuente)
+        db.commit()
+        db.refresh(fuente)
+        
+        return {"id": fuente.id, "message": "Fuente creada exitosamente"}
+        
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ============= AUTH =============
+
 @router.post("/login")
 def login_placeholder():
     """Placeholder - mantener compatibilidad"""
     return {"message": "Login functionality needed"}
-
-@router.get("/fuentes")
-def get_fuentes_placeholder():
-    """Placeholder - mantener compatibilidad"""
-    return []

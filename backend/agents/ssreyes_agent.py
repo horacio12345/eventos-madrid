@@ -84,6 +84,10 @@ class SSReyesAgent:
                 eventos = response["eventos"]
                 print(f"✅ [SSReyes] Extracted {len(eventos)} events")
                 
+                # Step 4: Save events to database
+                save_result = self.save_eventos_to_db(eventos, pdf_url)
+                print(f"💾 [SSReyes] Saved {save_result['guardados']} events to database")
+                
                 # Add metadata to each event
                 for evento in eventos:
                     evento["fuente_nombre"] = "San Sebastián de los Reyes"
@@ -99,6 +103,7 @@ class SSReyesAgent:
                 return {
                     "estado": "success",
                     "eventos_encontrados": len(eventos),
+                    "eventos_guardados": save_result['guardados'],
                     "eventos": eventos,
                     "fuente": "SSReyes",
                     "pdf_url": pdf_url,
@@ -121,6 +126,42 @@ class SSReyesAgent:
                 "eventos": [],
                 "pdf_url": pdf_url
             }
+
+    def save_eventos_to_db(self, eventos: List[Dict], pdf_url: str) -> Dict:
+        """Save events to database"""
+        from core.database import SessionLocal
+        from core.models import Evento
+        
+        saved_count = 0
+        db = SessionLocal()
+        
+        try:
+            for evento_data in eventos:
+                # Crear objeto Evento
+                evento = Evento(
+                    titulo=evento_data["titulo"],
+                    fecha_inicio=datetime.strptime(evento_data["fecha_inicio"], "%Y-%m-%d").date(),
+                    categoria=evento_data["categoria"],
+                    precio=evento_data["precio"],
+                    ubicacion=evento_data["ubicacion"],
+                    descripcion=evento_data["descripcion"],
+                    fuente_id=1,  # SSReyes
+                    fuente_nombre="San Sebastián de los Reyes",
+                    url_original=pdf_url
+                )
+                db.add(evento)
+                saved_count += 1
+            
+            db.commit()
+            print(f"✅ [SSReyes] Successfully saved {saved_count} events to database")
+            return {"guardados": saved_count}
+            
+        except Exception as e:
+            db.rollback()
+            print(f"❌ [SSReyes] Error saving to database: {str(e)}")
+            raise e
+        finally:
+            db.close()
 
     def get_config_info(self) -> Dict:
         """Get configuration info for debugging"""

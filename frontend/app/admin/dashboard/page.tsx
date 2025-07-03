@@ -12,22 +12,22 @@ import {
   ClockIcon,
   PlayIcon,
   ArrowPathIcon,
-  ChartBarIcon
+  ChartBarIcon,
+  DocumentArrowUpIcon
 } from '@heroicons/react/24/outline';
-import { useEventos, useFuentes, useLogs } from '@/lib/api';
+import { useEventos, useFuentes } from '@/lib/api';
 import { api } from '@/lib/api';
 import { formatDateTime, getCategoriaConfig, formatPrice } from '@/lib/utils';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import Alert from '@/components/Alert';
 
 export default function DashboardPage() {
-  const [triggeringUpdate, setTriggeringUpdate] = useState(false);
+  const [processingFiles, setProcessingFiles] = useState(false);
   const [updateMessage, setUpdateMessage] = useState('');
 
   // Cargar datos
   const { data: eventos, loading: eventosLoading, refetch: refetchEventos } = useEventos();
   const { data: fuentes, loading: fuentesLoading, refetch: refetchFuentes } = useFuentes();
-  const { data: logs, loading: logsLoading } = useLogs();
 
   // Estadísticas calculadas
   const stats = {
@@ -35,9 +35,9 @@ export default function DashboardPage() {
     eventosActivos: eventos?.filter(e => e.activo).length || 0,
     totalFuentes: fuentes?.length || 0,
     fuentesActivas: fuentes?.filter(f => f.activa).length || 0,
-    ultimoScraping: logs?.[0]?.fecha_inicio || null,
-    scrapingsExitosos: logs?.filter(l => l.estado === 'success').length || 0,
-    scrapingsConError: logs?.filter(l => l.estado === 'error').length || 0
+    ultimoProcesamiento: null, // Se calculará después
+    procesamientosExitosos: 0, // Se calculará después
+    procesamientosConError: 0 // Se calculará después
   };
 
   // Categorías con eventos
@@ -47,14 +47,14 @@ export default function DashboardPage() {
     return acc;
   }, {} as Record<string, number>) || {};
 
-  // Trigger scraping manual
-  const handleTriggerScraping = async () => {
-    setTriggeringUpdate(true);
+  // Trigger procesamiento manual de archivos
+  const handleTriggerProcessing = async () => {
+    setProcessingFiles(true);
     setUpdateMessage('');
     
     try {
-      const result = await api.admin.scraping.trigger();
-      setUpdateMessage(`Scraping ejecutado: ${result.exitosas} exitosos, ${result.errores} errores`);
+      // Por ahora redirigir a gestión de fuentes
+      setUpdateMessage('Ir a "Gestión de Fuentes" para procesar archivos');
       
       // Refrescar datos después de 2 segundos
       setTimeout(() => {
@@ -65,7 +65,7 @@ export default function DashboardPage() {
     } catch (error) {
       setUpdateMessage(`Error: ${error instanceof Error ? error.message : 'Error desconocido'}`);
     } finally {
-      setTriggeringUpdate(false);
+      setProcessingFiles(false);
     }
   };
 
@@ -123,14 +123,14 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Total Fuentes */}
+        {/* Total Agentes */}
         <div className="bg-white rounded-lg shadow-card p-6 border border-gray-100">
           <div className="flex items-center">
             <div className="flex-shrink-0">
               <GlobeAltIcon className="h-8 w-8 text-blue-600" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Total Fuentes</p>
+              <p className="text-sm font-medium text-gray-500">Total Agentes</p>
               <p className="text-2xl font-bold text-gray-900">
                 {fuentesLoading ? <LoadingSpinner size="sm" /> : stats.totalFuentes}
               </p>
@@ -138,14 +138,14 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Fuentes Activas */}
+        {/* Agentes Activos */}
         <div className="bg-white rounded-lg shadow-card p-6 border border-gray-100">
           <div className="flex items-center">
             <div className="flex-shrink-0">
               <PlayIcon className="h-8 w-8 text-purple-600" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Fuentes Activas</p>
+              <p className="text-sm font-medium text-gray-500">Agentes Activos</p>
               <p className="text-2xl font-bold text-gray-900">
                 {fuentesLoading ? <LoadingSpinner size="sm" /> : stats.fuentesActivas}
               </p>
@@ -160,64 +160,56 @@ export default function DashboardPage() {
           <h3 className="text-lg font-medium text-gray-900 mb-4">Acciones Rápidas</h3>
           <div className="space-y-3">
             <button
-              onClick={handleTriggerScraping}
-              disabled={triggeringUpdate}
+              onClick={handleTriggerProcessing}
+              disabled={processingFiles}
               className="w-full btn btn-primary justify-start"
             >
-              {triggeringUpdate ? (
+              {processingFiles ? (
                 <LoadingSpinner size="sm" />
               ) : (
-                <ArrowPathIcon className="h-5 w-5" />
+                <DocumentArrowUpIcon className="h-5 w-5" />
               )}
               <span className="ml-2">
-                {triggeringUpdate ? 'Ejecutando scraping...' : 'Ejecutar Scraping Manual'}
+                {processingFiles ? 'Procesando archivos...' : 'Procesar Archivos'}
               </span>
             </button>
 
             <Link href="/admin/fuentes" className="w-full btn btn-outline justify-start">
               <GlobeAltIcon className="h-5 w-5" />
-              <span className="ml-2">Gestionar Fuentes</span>
+              <span className="ml-2">Gestionar Agentes</span>
             </Link>
 
             <Link href="/admin/logs" className="w-full btn btn-outline justify-start">
               <ChartBarIcon className="h-5 w-5" />
-              <span className="ml-2">Ver Logs del Sistema</span>
+              <span className="ml-2">Ver Historial del Sistema</span>
             </Link>
           </div>
         </div>
 
-        {/* Estado del último scraping */}
+        {/* Estado del sistema */}
         <div className="bg-white rounded-lg shadow-card p-6 border border-gray-100">
           <h3 className="text-lg font-medium text-gray-900 mb-4">Estado del Sistema</h3>
           <div className="space-y-4">
-            {logsLoading ? (
-              <LoadingSpinner size="sm" text="Cargando logs..." />
-            ) : (
-              <>
-                {stats.ultimoScraping && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-500">Último scraping:</span>
-                    <span className="text-sm font-medium text-gray-900">
-                      {formatDateTime(stats.ultimoScraping)}
-                    </span>
-                  </div>
-                )}
-                
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-500">Scrapings exitosos:</span>
-                  <span className="text-sm font-medium text-green-600">
-                    {stats.scrapingsExitosos}
-                  </span>
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-500">Scrapings con error:</span>
-                  <span className="text-sm font-medium text-red-600">
-                    {stats.scrapingsConError}
-                  </span>
-                </div>
-              </>
-            )}
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-500">Eventos en base de datos:</span>
+              <span className="text-sm font-medium text-gray-900">
+                {stats.totalEventos}
+              </span>
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-500">Agentes configurados:</span>
+              <span className="text-sm font-medium text-blue-600">
+                {stats.totalFuentes}
+              </span>
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-500">Sistema:</span>
+              <span className="text-sm font-medium text-green-600">
+                Operativo
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -251,9 +243,9 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* Estado de fuentes */}
+        {/* Estado de agentes */}
         <div className="bg-white rounded-lg shadow-card p-6 border border-gray-100">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Estado de Fuentes</h3>
+          <h3 className="text-lg font-medium text-gray-900 mb-4">Estado de Agentes</h3>
           {fuentesLoading ? (
             <LoadingSpinner size="sm" />
           ) : (
@@ -263,7 +255,7 @@ export default function DashboardPage() {
                   <div className="flex items-center">
                     <div className={`w-3 h-3 rounded-full mr-3 ${
                       fuente.activa 
-                        ? fuente.ultimo_estado === 'success' ? 'bg-green-500' : 'bg-red-500'
+                        ? fuente.ultimo_estado === 'success' ? 'bg-green-500' : 'bg-gray-500'
                         : 'bg-gray-400'
                     }`} />
                     <span className="text-sm text-gray-700 truncate max-w-40">
@@ -277,7 +269,7 @@ export default function DashboardPage() {
               ))}
               {fuentes && fuentes.length === 0 && (
                 <p className="text-sm text-gray-500 text-center py-4">
-                  No hay fuentes configuradas
+                  No hay agentes configurados
                 </p>
               )}
               {fuentes && fuentes.length > 5 && (
@@ -285,7 +277,7 @@ export default function DashboardPage() {
                   href="/admin/fuentes" 
                   className="block text-sm text-primary-600 hover:text-primary-800 text-center pt-2"
                 >
-                  Ver todas las fuentes →
+                  Ver todos los agentes →
                 </Link>
               )}
             </div>
