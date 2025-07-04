@@ -3,6 +3,7 @@
 """
 Configuración global del proyecto usando Pydantic Settings
 """
+import os
 from functools import lru_cache
 from typing import List
 
@@ -47,7 +48,9 @@ class Settings(BaseSettings):
     allowed_origins: List[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
 
     class Config:
-        env_file = "../.env"
+        # Construir la ruta absoluta al fichero .env en la raíz del proyecto
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        env_file = os.path.join(project_root, ".env")
 
 
 @lru_cache()

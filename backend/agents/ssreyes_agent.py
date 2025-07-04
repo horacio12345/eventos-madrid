@@ -31,7 +31,7 @@ class SSReyesAgent:
     def __init__(self):
         # Initialize LLM
         if settings.openai_api_key:
-            self.llm = ChatOpenAI(model=settings.openai_model, temperature=0)
+            self.llm = ChatOpenAI(api_key=settings.openai_api_key, model=settings.openai_model, temperature=0)
         elif settings.anthropic_api_key:
             self.llm = ChatAnthropic(model=settings.anthropic_model, temperature=0)
         else:

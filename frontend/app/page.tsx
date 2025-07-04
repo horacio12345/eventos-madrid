@@ -12,7 +12,8 @@ import {
   getRelativeDate, 
   formatPrice,
   filterEventos,
-  debounce
+  debounce,
+  isToday, isTomorrow, isThisWeek, isUpcoming
 } from '@/lib/utils';
 
 import EventCard from '@/components/EventCard';
@@ -40,6 +41,20 @@ export default function HomePage() {
   // Eventos filtrados
   const [filteredEventos, setFilteredEventos] = useState<Evento[]>([]);
 
+  interface GroupedEvents {
+    today: Evento[];
+    tomorrow: Evento[];
+    thisWeek: Evento[];
+    upcoming: Evento[];
+  }
+
+  const [groupedEventos, setGroupedEventos] = useState<GroupedEvents>({
+    today: [],
+    tomorrow: [],
+    thisWeek: [],
+    upcoming: [],
+  });
+
   // Debounced search
   const debouncedSearch = debounce((term: string) => {
     setFilters(prev => ({ ...prev, busqueda: term }));
@@ -52,6 +67,35 @@ export default function HomePage() {
       setFilteredEventos(filtered);
     }
   }, [eventos, filters]);
+
+  // Efecto para agrupar eventos por fecha
+  useEffect(() => {
+    if (filteredEventos) {
+      const today: Evento[] = [];
+      const tomorrow: Evento[] = [];
+      const thisWeek: Evento[] = [];
+      const upcoming: Evento[] = [];
+
+      // Sort events by date before grouping
+      const sortedEvents = [...filteredEventos].sort((a, b) =>
+        new Date(a.fecha_inicio).getTime() - new Date(b.fecha_inicio).getTime()
+      );
+
+      sortedEvents.forEach((evento) => {
+        if (isToday(evento.fecha_inicio)) {
+          today.push(evento);
+        } else if (isTomorrow(evento.fecha_inicio)) {
+          tomorrow.push(evento);
+        } else if (isThisWeek(evento.fecha_inicio)) {
+          thisWeek.push(evento);
+        } else if (isUpcoming(evento.fecha_inicio)) {
+          upcoming.push(evento);
+        }
+      });
+
+      setGroupedEventos({ today, tomorrow, thisWeek, upcoming });
+    }
+  }, [filteredEventos]);
 
   // Efecto para búsqueda
   useEffect(() => {
@@ -74,14 +118,13 @@ export default function HomePage() {
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-gray-200">
         <div className="container-wide">
-          <div className="py-6">
+          <div className="py-3">
             <div className="text-center">
-              <h1 className="text-4xl font-bold text-gray-900 mb-2">
-                🎭 Eventos Mayores Madrid
+              <h1 className="text-3xl font-bold text-gray-900 mb-0">
+                🗓️ Agenda Activa
               </h1>
-              <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-                Descubre actividades gratuitas y de bajo coste especialmente seleccionadas 
-                para personas mayores en la Comunidad de Madrid
+              <p className="text-base text-gray-600 max-w-3xl mx-auto mb-0">
+                Planes y actividades en tu ciudad, seleccionados para ti.
               </p>
             </div>
           </div>
@@ -91,55 +134,41 @@ export default function HomePage() {
       {/* Barra de búsqueda y filtros */}
       <section className="bg-white border-b border-gray-200 sticky top-0 z-40">
         <div className="container-wide">
-          <div className="py-4">
-            <div className="flex flex-col lg:flex-row gap-4 items-center">
+          <div className="py-3">
+            <div className="flex flex-col lg:flex-row gap-3 items-center">
               {/* Búsqueda */}
-              <div className="relative flex-1 max-w-md">
-                <MagnifyingGlassIcon className="absolute left-3 top-3.5 h-5 w-5 text-gray-400" />
+              <div className="relative flex-1 w-full">
+                <MagnifyingGlassIcon className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
                 <input
                   type="text"
                   placeholder="Buscar eventos..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="input pl-10 text-lg"
+                  className="input pl-10 text-lg py-2"
                 />
               </div>
 
               {/* Botón de filtros */}
               <button
                 onClick={() => setShowFilters(!showFilters)}
-                className={`btn ${showFilters ? 'btn-primary' : 'btn-outline'} relative`}
+                className={`btn btn-primary btn-md w-full lg:w-auto`}
               >
-                <FunnelIcon className="h-5 w-5 mr-2" />
-                Filtros
-                {activeFiltersCount > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-6 w-6 flex items-center justify-center">
-                    {activeFiltersCount}
-                  </span>
-                )}
-              </button>
-
-              {/* Recargar */}
-              <button
-                onClick={refetch}
-                disabled={eventosLoading}
-                className="btn btn-outline"
-              >
-                {eventosLoading ? <LoadingSpinner size="sm" /> : '🔄'} Actualizar
+                <MagnifyingGlassIcon className="h-5 w-5 mr-2" />
+                Buscar
               </button>
             </div>
 
             {/* Panel de filtros */}
             {showFilters && (
-              <div className="mt-4 p-4 bg-gray-50 rounded-lg animate-slide-down">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="mt-3 p-3 bg-gray-50 rounded-lg animate-slide-down">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                   {/* Filtro por categoría */}
                   <div>
-                    <label className="label">Categoría</label>
+                    <label className="label text-base">Categoría</label>
                     <select
                       value={filters.categoria || ''}
                       onChange={(e) => handleCategoryFilter(e.target.value as EventoCategoria || undefined)}
-                      className="select"
+                      className="select text-base"
                     >
                       <option value="">Todas las categorías</option>
                       {getAllCategorias().map(categoria => {
@@ -156,14 +185,14 @@ export default function HomePage() {
 
                   {/* Filtro por precio */}
                   <div>
-                    <label className="label">Precio máximo</label>
+                    <label className="label text-base">Precio máximo</label>
                     <select
                       value={filters.precio_max || ''}
                       onChange={(e) => setFilters(prev => ({ 
                         ...prev, 
                         precio_max: e.target.value ? parseInt(e.target.value) : undefined 
                       }))}
-                      className="select"
+                      className="select text-base"
                     >
                       <option value="">Cualquier precio</option>
                       <option value="0">Solo gratuitos</option>
@@ -177,7 +206,7 @@ export default function HomePage() {
                   <div className="flex items-end gap-2">
                     <button
                       onClick={clearFilters}
-                      className="btn btn-secondary flex-1"
+                      className="btn btn-secondary btn-md flex-1"
                     >
                       Limpiar filtros
                     </button>
@@ -190,36 +219,8 @@ export default function HomePage() {
       </section>
 
       {/* Contenido principal */}
-      <main className="container-wide section-padding">
-        {/* Estadísticas rápidas */}
-        {!eventosLoading && eventos && (
-          <div className="mb-8">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-white rounded-lg p-4 text-center">
-                <div className="text-3xl font-bold text-primary-600">
-                  {filteredEventos.length}
-                </div>
-                <div className="text-gray-600">
-                  {filteredEventos.length === 1 ? 'Evento encontrado' : 'Eventos encontrados'}
-                </div>
-              </div>
-              <div className="bg-white rounded-lg p-4 text-center">
-                <div className="text-3xl font-bold text-green-600">
-                  {filteredEventos.filter(e => formatPrice(e.precio) === 'Gratis').length}
-                </div>
-                <div className="text-gray-600">Eventos gratuitos</div>
-              </div>
-              <div className="bg-white rounded-lg p-4 text-center">
-                <div className="text-3xl font-bold text-purple-600">
-                  {new Set(filteredEventos.map(e => e.categoria)).size}
-                </div>
-                <div className="text-gray-600">
-                  {new Set(filteredEventos.map(e => e.categoria)).size === 1 ? 'Categoría' : 'Categorías'}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+      <main className="container-wide py-4">
+        
 
         {/* Estados de carga y error */}
         {eventosLoading && (
@@ -249,7 +250,8 @@ export default function HomePage() {
         {/* Lista de eventos */}
         {!eventosLoading && !eventosError && (
           <>
-            {filteredEventos.length === 0 ? (
+            {/* No hay eventos */}
+            {filteredEventos.length === 0 && ( // Use filteredEventos here for the overall empty state
               <div className="text-center py-12">
                 <div className="bg-gray-100 rounded-full w-24 h-24 mx-auto mb-4 flex items-center justify-center">
                   <CalendarIcon className="h-12 w-12 text-gray-400" />
@@ -258,7 +260,7 @@ export default function HomePage() {
                   No hay eventos disponibles
                 </h3>
                 <p className="text-gray-600 mb-4">
-                  {activeFiltersCount > 0 
+                  {activeFiltersCount > 0
                     ? 'Prueba ajustando los filtros de búsqueda'
                     : 'En este momento no hay eventos programados'
                   }
@@ -272,17 +274,61 @@ export default function HomePage() {
                   </button>
                 )}
               </div>
-            ) : (
-              <div className="space-y-6">
-                {/* Ordenar eventos por fecha */}
-                {filteredEventos
-                  .sort((a, b) => new Date(a.fecha_inicio).getTime() - new Date(b.fecha_inicio).getTime())
-                  .map((evento, index) => (
+            )}
+
+            {/* Eventos de Hoy */}
+            {groupedEventos.today.length > 0 && (
+              <div className="mb-4">
+                <h2 className="text-3xl font-bold text-gray-900 mb-3">Hoy</h2>
+                <div className="space-y-4">
+                  {groupedEventos.today.map((evento, index) => (
                     <div key={evento.id} className="animate-fade-in" style={{ animationDelay: `${index * 50}ms` }}>
                       <EventCard evento={evento} />
                     </div>
-                  ))
-                }
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Eventos de Mañana */}
+            {groupedEventos.tomorrow.length > 0 && (
+              <div className="mb-4">
+                <h2 className="text-3xl font-bold text-gray-900 mb-3">Mañana</h2>
+                <div className="space-y-4">
+                  {groupedEventos.tomorrow.map((evento, index) => (
+                    <div key={evento.id} className="animate-fade-in" style={{ animationDelay: `${index * 50}ms` }}>
+                      <EventCard evento={evento} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Eventos Esta Semana */}
+            {groupedEventos.thisWeek.length > 0 && (
+              <div className="mb-4">
+                <h2 className="text-3xl font-bold text-gray-900 mb-3">Esta Semana</h2>
+                <div className="space-y-4">
+                  {groupedEventos.thisWeek.map((evento, index) => (
+                    <div key={evento.id} className="animate-fade-in" style={{ animationDelay: `${index * 50}ms` }}>
+                      <EventCard evento={evento} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Próximos Eventos */}
+            {groupedEventos.upcoming.length > 0 && (
+              <div className="mb-4">
+                <h2 className="text-3xl font-bold text-gray-900 mb-3">Próximos Eventos</h2>
+                <div className="space-y-4">
+                  {groupedEventos.upcoming.map((evento, index) => (
+                    <div key={evento.id} className="animate-fade-in" style={{ animationDelay: `${index * 50}ms` }}>
+                      <EventCard evento={evento} />
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </>
@@ -309,7 +355,7 @@ export default function HomePage() {
         <div className="container-wide py-8">
           <div className="text-center">
             <h3 className="text-lg font-medium text-white mb-2">
-              Eventos Mayores Madrid
+              Agenda Activa
             </h3>
             <p className="text-gray-400 mb-4">
               Plataforma dedicada a conectar a nuestros mayores con la cultura y el ocio de la ciudad

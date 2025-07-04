@@ -83,7 +83,7 @@ export default function RootLayout({
         className={`
           ${inter.className} 
           min-h-screen 
-          bg-gray-50 
+          bg-white 
           text-gray-900 
           antialiased
           selection:bg-primary-100 

@@ -9,8 +9,9 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from datetime import datetime
 from core import get_db
-from core.models import FuenteWeb
+from core.models import FuenteWeb, Evento, LogScraping
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 from agents.ssreyes_agent import SSReyesAgent
 from fastapi import UploadFile, File, Form
@@ -24,15 +25,23 @@ async def extract_ssreyes_events(request: dict):
     Extract events specifically from SSReyes PDF
     """
     try:
-        pdf_url = request.get("pdf_url")
-        if not pdf_url:
+        pdf_relative_path = request.get("pdf_url")
+        if not pdf_relative_path:
             raise HTTPException(status_code=400, detail="pdf_url is required")
-        
-        print(f"🚀 [ADMIN] Starting SSReyes extraction for: {pdf_url}")
+
+        # Construir la ruta absoluta para asegurar que el fichero se encuentre.
+        # La ruta relativa viene de `data/uploads/...`
+        backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        pdf_absolute_path = os.path.join(backend_dir, pdf_relative_path)
+
+        if not os.path.exists(pdf_absolute_path):
+            raise HTTPException(status_code=404, detail=f"El fichero no se encontró en la ruta: {pdf_absolute_path}")
+
+        print(f"🚀 [ADMIN] Starting SSReyes extraction for: {pdf_absolute_path}")
         
         # Use specific SSReyes agent
         agent = SSReyesAgent()
-        result = await agent.extract_events_from_pdf(pdf_url)
+        result = await agent.extract_events_from_pdf(pdf_absolute_path)
         
         print(f"✅ [ADMIN] SSReyes extraction completed: {result['estado']}")
         
@@ -123,26 +132,123 @@ async def upload_file(
         if not file.filename.lower().endswith(('.pdf', '.jpg', '.jpeg', '.png')):
             raise HTTPException(status_code=400, detail="Tipo de archivo no soportado")
         
-        # Crear directorio temporal si no existe
-        import tempfile
-        import os
+        # Usar el directorio data/uploads para persistencia
+        backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        upload_dir = os.path.join(backend_dir, "data", "uploads")
+        os.makedirs(upload_dir, exist_ok=True)
         
-        temp_dir = "temp_uploads"
-        os.makedirs(temp_dir, exist_ok=True)
-        
-        # Guardar archivo temporalmente
-        file_path = os.path.join(temp_dir, f"{agent_type}_{file.filename}")
+        # Crear un nombre de archivo único con timestamp
+        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+        unique_filename = f"{timestamp}_{agent_type}_{file.filename}"
+        file_path = os.path.join(upload_dir, unique_filename)
         
         with open(file_path, "wb") as buffer:
             content = await file.read()
             buffer.write(content)
         
+        # Devolver la ruta relativa para que el frontend la use
+        relative_path = os.path.join("data", "uploads", unique_filename)
+
         return {
             "message": "Archivo subido exitosamente",
-            "file_path": file_path,
+            "file_path": relative_path,
             "agent_type": agent_type,
             "filename": file.filename
         }
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/fuentes/{fuente_id}")
+def delete_fuente(fuente_id: int, db: Session = Depends(get_db)):
+    """Eliminar una fuente por ID"""
+    try:
+        fuente = db.query(FuenteWeb).filter(FuenteWeb.id == fuente_id).first()
+        if not fuente:
+            raise HTTPException(status_code=404, detail="Fuente no encontrada")
+        
+        db.delete(fuente)
+        db.commit()
+        
+        return {"message": "Fuente eliminada exitosamente"}
+        
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ============= GESTIÓN DE ARCHIVOS SUBIDOS =============
+
+@router.get("/uploads/{agent_name}")
+def get_uploaded_files(agent_name: str):
+    """Listar archivos subidos para un agente específico."""
+    try:
+        backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        upload_dir = os.path.join(backend_dir, "data", "uploads")
+        
+        if not os.path.exists(upload_dir):
+            return []
+
+        # Filtrar archivos que pertenecen al agente
+        files = [
+            f for f in os.listdir(upload_dir) 
+            if f.startswith(f"_{agent_name}_") or f.split('_', 1)[1].startswith(f"{agent_name}_")
+        ]
+        
+        return sorted(files, reverse=True)
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error listando archivos: {str(e)}")
+
+
+@router.delete("/upload/{filename}")
+def delete_uploaded_file(filename: str, db: Session = Depends(get_db)):
+    """
+    Eliminar un archivo subido y todos los eventos asociados a él.
+    """
+    try:
+        # Construir la ruta absoluta al archivo
+        backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        file_path = os.path.join(backend_dir, "data", "uploads", filename)
+        
+        if not os.path.exists(file_path):
+            raise HTTPException(status_code=404, detail="El archivo no fue encontrado en el servidor.")
+
+        # 1. Borrar eventos de la DB asociados a este archivo
+        # La `url_original` se guardó como una ruta absoluta, necesitamos la parte final.
+        # O mejor, construimos la ruta relativa que se guardó.
+        relative_path = os.path.join("data", "uploads", filename)
+        
+        # Buscamos eventos que contengan esta ruta relativa.
+        eventos_a_borrar = db.query(Evento).filter(Evento.url_original.contains(relative_path)).all()
+        
+        count = len(eventos_a_borrar)
+        if count > 0:
+            db.query(Evento).filter(Evento.url_original.contains(relative_path)).delete(synchronize_session=False)
+        
+        # 2. Borrar el archivo físico del disco
+        os.remove(file_path)
+        
+        db.commit()
+        
+        return {"message": f"Archivo '{filename}' y {count} eventos asociados eliminados exitosamente."}
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error eliminando el archivo: {str(e)}")
+
+# ============= LOGS =============
+
+@router.get("/logs")
+def get_logs(fuente_id: int = None, limit: int = 100, db: Session = Depends(get_db)):
+    """Obtener los logs de scraping, con filtro opcional por fuente."""
+    try:
+        query = db.query(LogsScraping).order_by(LogsScraping.fecha_inicio.desc())
+        
+        if fuente_id:
+            query = query.filter(LogsScraping.fuente_id == fuente_id)
+            
+        logs = query.limit(limit).all()
+        return logs
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error obteniendo logs: {str(e)}")
