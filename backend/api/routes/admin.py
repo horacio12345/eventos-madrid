@@ -7,13 +7,15 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from datetime import datetime
 from core import get_db
 from core.models import FuenteWeb, Evento, LogScraping
 from agents.ssreyes_agent import SSReyesAgent
 from fastapi import UploadFile, File, Form
+import shutil
+import os
 
 
 router = APIRouter()
@@ -180,10 +182,48 @@ def get_uploaded_files(agent_name: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error listando archivos: {str(e)}")
 
+@router.delete("/upload/{filename}")
+async def delete_uploaded_file(filename: str):
+    """Eliminar un archivo subido"""
+    try:
+        backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        file_path = os.path.join(backend_dir, "data", "uploads", filename)
+        
+        # Verificar que el archivo existe
+        if not os.path.exists(file_path):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"El archivo {filename} no existe"
+            )
+            
+        # Verificar que el archivo está dentro del directorio de subidas
+        uploads_dir = os.path.join(backend_dir, "data", "uploads")
+        if not os.path.abspath(file_path).startswith(os.path.abspath(uploads_dir)):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Operación no permitida"
+            )
+            
+        # Eliminar el archivo
+        os.remove(file_path)
+        
+        return {"message": f"Archivo {filename} eliminado correctamente"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al eliminar el archivo: {str(e)}"
+        )
+
+
+
 @router.delete("/fuentes/{fuente_id}")
 def delete_fuente(fuente_id: int, db: Session = Depends(get_db)):
     """Eliminar una fuente por ID CON CASCADA"""
     try:
+        # Verificar que la fuente existe
         fuente = db.query(FuenteWeb).filter(FuenteWeb.id == fuente_id).first()
         if not fuente:
             raise HTTPException(status_code=404, detail="Fuente no encontrada")
@@ -197,10 +237,23 @@ def delete_fuente(fuente_id: int, db: Session = Depends(get_db)):
         archivos_borrados = 0
         
         if os.path.exists(upload_dir):
+            archivos_a_borrar = []
+            # Primero identificar archivos a borrar
             for archivo in os.listdir(upload_dir):
-                if fuente.nombre.lower() in archivo.lower():
+                try:
+                    parts = archivo.split('_', 2)
+                    if len(parts) >= 2 and parts[1].lower() == fuente.nombre.lower().replace(' ', ''):
+                        archivos_a_borrar.append(archivo)
+                except Exception:
+                    continue
+            
+            # Luego borrarlos
+            for archivo in archivos_a_borrar:
+                try:
                     os.remove(os.path.join(upload_dir, archivo))
                     archivos_borrados += 1
+                except Exception as e:
+                    print(f"Error borrando {archivo}: {e}")
         
         # 3. Borrar fuente
         db.delete(fuente)
@@ -210,10 +263,13 @@ def delete_fuente(fuente_id: int, db: Session = Depends(get_db)):
             "message": f"Agente eliminado: {eventos_borrados} eventos y {archivos_borrados} archivos borrados"
         }
         
+    except HTTPException:
+        db.rollback()
+        raise
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
-
+    
 # ============= LOGS =============
 
 @router.get("/logs")

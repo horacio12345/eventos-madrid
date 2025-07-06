@@ -79,9 +79,16 @@ class SSReyesAgent:
         try:
             print(f"🔍 [SSReyes] Starting extraction from: {pdf_url}")
             
-            # Step 1: Extract PDF content
+            # Step 1: Convert relative path to absolute
+            if not os.path.isabs(pdf_url):
+                backend_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+                pdf_absolute_path = os.path.join(backend_dir, pdf_url)
+            else:
+                pdf_absolute_path = pdf_url
+
+            # Step 2: Extract PDF content
             converter = DocumentConverter()
-            result = converter.convert(pdf_url)
+            result = converter.convert(pdf_absolute_path)
             texto = result.document.export_to_markdown()
             
             print(f"📄 [SSReyes] PDF content extracted, length: {len(texto)}")

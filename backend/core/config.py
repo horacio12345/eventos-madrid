@@ -35,10 +35,10 @@ class Settings(BaseSettings):
     anthropic_model: str = "claude-3-haiku-20240307"
 
     # ============= SCRAPING =============
-    request_timeout: int = 30
+    request_timeout: int = 120
     max_retries: int = 3
     playwright_headless: bool = True
-    playwright_timeout: int = 30000
+    playwright_timeout: int = 120000
 
     # ============= SCHEDULER =============
     scheduler_timezone: str = "Europe/Madrid"
