@@ -38,7 +38,7 @@ class Settings(BaseSettings):
     request_timeout: int = 120
     max_retries: int = 3
     playwright_headless: bool = True
-    playwright_timeout: int = 120000
+    playwright_timeout: int = 150000
 
     # ============= SCHEDULER =============
     scheduler_timezone: str = "Europe/Madrid"

@@ -171,21 +171,6 @@ export default function EventCard({ evento }: EventCardProps) {
         </div>
       )}
 
-      {/* Información adicional expandible */}
-      {evento.datos_extra && Object.keys(evento.datos_extra).length > 0 && (
-        <div className="mb-1 p-1.5 bg-gray-50 rounded-lg">
-          <h4 className="font-medium text-gray-900 mb-0.5">Información adicional:</h4>
-          <div className="space-y-0 text-xs text-gray-700">
-            {Object.entries(evento.datos_extra).map(([key, value]) => (
-              <div key={key} className="flex">
-                <span className="font-medium capitalize mr-0.5">{key}:</span>
-                <span>{String(value)}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Footer con fuente */}
       <div className="pt-1.5 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-1.5">
         <div className="text-xs text-gray-600">

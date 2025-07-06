@@ -7,7 +7,7 @@ import json
 import os
 import sys
 import yaml
-from datetime import datetime
+from datetime import datetime, date
 from typing import Dict, List
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
@@ -101,8 +101,7 @@ class SSReyesAgent:
             # Step 3: Process and validate response
             if isinstance(response, dict) and "eventos" in response:
                 eventos_raw = response["eventos"]
-                print(f"✅ [SSReyes] Extracted {len(eventos_raw)} raw events")
-                
+                print(f"🔍 [DEBUG] Raw eventos from LLM: {eventos_raw[0] if eventos_raw else 'None'}")
                 # Step 4: NORMALIZAR EVENTOS (incluye detección de duplicados)
                 mapeo_campos = {
                     "titulo": "titulo",
@@ -114,7 +113,7 @@ class SSReyesAgent:
                 }
                 
                 eventos_normalizados = self.normalizer.batch_normalize(eventos_raw, mapeo_campos)
-                print(f"🔧 [SSReyes] Normalized to {len(eventos_normalizados)} events")
+                print(f"🔍 [DEBUG] Normalized event: {eventos_normalizados[0] if eventos_normalizados else 'None'}")
                 
                 # Step 5: Save events to database WITH DEDUPLICATION
                 save_result = self.save_eventos_to_db_deduped(eventos_normalizados, pdf_url)
@@ -188,7 +187,7 @@ class SSReyesAgent:
                 existing_by_content = db.query(Evento).filter(
                     and_(
                         Evento.titulo == evento_data["titulo"],
-                        Evento.fecha_inicio == datetime.strptime(evento_data["fecha_inicio"], "%Y-%m-%d").date(),
+                        Evento.fecha_inicio == datetime.combine(evento_data["fecha_inicio"], datetime.min.time()),
                         Evento.ubicacion == evento_data.get("ubicacion", "")
                     )
                 ).first()
@@ -201,7 +200,7 @@ class SSReyesAgent:
                 # Crear objeto Evento
                 evento = Evento(
                     titulo=evento_data["titulo"],
-                    fecha_inicio=datetime.strptime(evento_data["fecha_inicio"], "%Y-%m-%d").date(),
+                    fecha_inicio=datetime.combine(evento_data["fecha_inicio"], datetime.min.time()),
                     categoria=evento_data["categoria"],
                     precio=evento_data["precio"],
                     ubicacion=evento_data.get("ubicacion"),

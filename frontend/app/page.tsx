@@ -241,13 +241,6 @@ export default function HomePage() {
 
       {/* Contenido principal */}
       <main className="container-wide py-4">
-        {/* Debug info - Solo en desarrollo */}
-        {process.env.NODE_ENV === 'development' && (
-          <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm">
-            <strong>Debug Info:</strong> {eventos?.length || 0} eventos totales, {totalCount} filtrados, 
-            Filtros activos: {activeFiltersCount}
-          </div>
-        )}
 
         {/* Estados de carga y error */}
         {eventosLoading && (
