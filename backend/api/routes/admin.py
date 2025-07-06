@@ -12,7 +12,6 @@ from sqlalchemy.orm import Session
 from datetime import datetime
 from core import get_db
 from core.models import FuenteWeb, Evento, LogScraping
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 from agents.ssreyes_agent import SSReyesAgent
 from fastapi import UploadFile, File, Form
 
@@ -116,8 +115,7 @@ def login_placeholder():
     """Placeholder - mantener compatibilidad"""
     return {"message": "Login functionality needed"}
 
-
-    # ============= UPLOAD =============
+# ============= UPLOAD =============
 
 @router.post("/upload")
 async def upload_file(
@@ -159,23 +157,6 @@ async def upload_file(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.delete("/fuentes/{fuente_id}")
-def delete_fuente(fuente_id: int, db: Session = Depends(get_db)):
-    """Eliminar una fuente por ID"""
-    try:
-        fuente = db.query(FuenteWeb).filter(FuenteWeb.id == fuente_id).first()
-        if not fuente:
-            raise HTTPException(status_code=404, detail="Fuente no encontrada")
-        
-        db.delete(fuente)
-        db.commit()
-        
-        return {"message": "Fuente eliminada exitosamente"}
-        
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
-
 # ============= GESTIÓN DE ARCHIVOS SUBIDOS =============
 
 @router.get("/uploads/{agent_name}")
@@ -199,42 +180,39 @@ def get_uploaded_files(agent_name: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error listando archivos: {str(e)}")
 
-
-@router.delete("/upload/{filename}")
-def delete_uploaded_file(filename: str, db: Session = Depends(get_db)):
-    """
-    Eliminar un archivo subido y todos los eventos asociados a él.
-    """
+@router.delete("/fuentes/{fuente_id}")
+def delete_fuente(fuente_id: int, db: Session = Depends(get_db)):
+    """Eliminar una fuente por ID CON CASCADA"""
     try:
-        # Construir la ruta absoluta al archivo
+        fuente = db.query(FuenteWeb).filter(FuenteWeb.id == fuente_id).first()
+        if not fuente:
+            raise HTTPException(status_code=404, detail="Fuente no encontrada")
+        
+        # 1. Borrar eventos asociados
+        eventos_borrados = db.query(Evento).filter(Evento.fuente_nombre == fuente.nombre).delete()
+        
+        # 2. Borrar archivos subidos
         backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        file_path = os.path.join(backend_dir, "data", "uploads", filename)
+        upload_dir = os.path.join(backend_dir, "data", "uploads")
+        archivos_borrados = 0
         
-        if not os.path.exists(file_path):
-            raise HTTPException(status_code=404, detail="El archivo no fue encontrado en el servidor.")
-
-        # 1. Borrar eventos de la DB asociados a este archivo
-        # La `url_original` se guardó como una ruta absoluta, necesitamos la parte final.
-        # O mejor, construimos la ruta relativa que se guardó.
-        relative_path = os.path.join("data", "uploads", filename)
+        if os.path.exists(upload_dir):
+            for archivo in os.listdir(upload_dir):
+                if fuente.nombre.lower() in archivo.lower():
+                    os.remove(os.path.join(upload_dir, archivo))
+                    archivos_borrados += 1
         
-        # Buscamos eventos que contengan esta ruta relativa.
-        eventos_a_borrar = db.query(Evento).filter(Evento.url_original.contains(relative_path)).all()
-        
-        count = len(eventos_a_borrar)
-        if count > 0:
-            db.query(Evento).filter(Evento.url_original.contains(relative_path)).delete(synchronize_session=False)
-        
-        # 2. Borrar el archivo físico del disco
-        os.remove(file_path)
-        
+        # 3. Borrar fuente
+        db.delete(fuente)
         db.commit()
         
-        return {"message": f"Archivo '{filename}' y {count} eventos asociados eliminados exitosamente."}
-
+        return {
+            "message": f"Agente eliminado: {eventos_borrados} eventos y {archivos_borrados} archivos borrados"
+        }
+        
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=f"Error eliminando el archivo: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 # ============= LOGS =============
 
@@ -253,10 +231,7 @@ def get_logs(fuente_id: int = None, limit: int = 100, db: Session = Depends(get_
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error obteniendo logs: {str(e)}")
 
-
-
-
-# Añadir estos endpoints al final de backend/api/routes/admin.py
+# ============= SSREYES CLEANUP & STATS =============
 
 @router.post("/ssreyes/cleanup-duplicates")
 async def cleanup_ssreyes_duplicates():

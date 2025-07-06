@@ -51,7 +51,7 @@ export default function EventCard({ evento }: EventCardProps) {
     future: 'bg-gray-100 text-gray-700 border-gray-200'
   };
 
-  const extractedDetails = extractEventDetails(evento.descripcion || '');
+  const extractedDetails = extractEventDetails(evento.descripcion || '', evento.datos_extra);
 
   const IconComponent = ({ iconName }: { iconName: string }) => {
     switch (iconName) {

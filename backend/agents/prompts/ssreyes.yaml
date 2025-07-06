@@ -21,7 +21,13 @@ prompts:
     4. Ubicación por defecto: "Centro Municipal de Personas Mayores 'Gloria Fuertes'"
     5. Precio por defecto: "Gratis" (casi todas las actividades son gratuitas)
     6. Categoriza según el tipo de actividad
-    7. Para enlace_ubicacion: usar "Centro Municipal de Personas Mayores Gloria Fuertes San Sebastián de los Reyes"
+
+    EXTRAE ESTOS CAMPOS ESTRUCTURADOS:
+    - horario: hora de inicio (ej: "8:30", "18:00")
+    - duracion_minutos: duración real en minutos (no confundir horarios con duración)
+    - plazas: número de plazas disponibles (ej: "30", "60") 
+    - inscripcion_requerida: true/false según si requiere inscripción
+    - descripcion: texto completo original
 
     TIPOS DE ACTIVIDADES COMUNES EN SSREYES:
     - Talleres (manualidades, informática, idiomas) → Categoría: "Formación"
@@ -41,8 +47,11 @@ prompts:
                 "categoria": "...",
                 "precio": "Gratis",
                 "ubicacion": "Centro Municipal de Personas Mayores 'Gloria Fuertes'",
-                "enlace_ubicacion": "https://www.google.com/maps/search/Centro+Municipal+de+Personas+Mayores+Gloria+Fuertes+San+Sebastián+de+los+Reyes",
-                "descripcion": "..."
+                "descripcion": "...",
+                "horario": "8:30",
+                "duracion_minutos": 120,
+                "plazas": "30",
+                "inscripcion_requerida": true
             }}
         ]
     }}
