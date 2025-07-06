@@ -1,9 +1,9 @@
-// app/page.tsx
+// app/page.tsx - VERSIÓN MEJORADA SIN DUPLICADOS
 
 'use client';
 
-import { useState, useEffect } from 'react';
-import { MagnifyingGlassIcon, FunnelIcon, CalendarIcon, MapPinIcon } from '@heroicons/react/24/outline';
+import { useState, useEffect, useMemo } from 'react';
+import { MagnifyingGlassIcon, CalendarIcon } from '@heroicons/react/24/outline';
 import { useEventos, useCategorias } from '@/lib/api';
 import { 
   getAllCategorias, 
@@ -28,6 +28,13 @@ interface EventoFilter {
   busqueda?: string;
 }
 
+interface GroupedEvents {
+  today: Evento[];
+  tomorrow: Evento[];
+  thisWeek: Evento[];
+  upcoming: Evento[];
+}
+
 export default function HomePage() {
   // Estado para filtros
   const [filters, setFilters] = useState<EventoFilter>({});
@@ -38,70 +45,84 @@ export default function HomePage() {
   const { data: eventos, loading: eventosLoading, error: eventosError, refetch } = useEventos();
   const { data: categorias } = useCategorias();
 
-  // Eventos filtrados
-  const [filteredEventos, setFilteredEventos] = useState<Evento[]>([]);
+  // OPTIMIZACIÓN: Usar useMemo en lugar de múltiples useEffect
+  // Esto evita renders innecesarios y desincronización de estado
+  
+  // Debounced search effect
+  const debouncedSetFilter = useMemo(
+    () => debounce((term: string) => {
+      setFilters(prev => ({ ...prev, busqueda: term }));
+    }, 300),
+    []
+  );
 
-  interface GroupedEvents {
-    today: Evento[];
-    tomorrow: Evento[];
-    thisWeek: Evento[];
-    upcoming: Evento[];
-  }
-
-  const [groupedEventos, setGroupedEventos] = useState<GroupedEvents>({
-    today: [],
-    tomorrow: [],
-    thisWeek: [],
-    upcoming: [],
-  });
-
-  // Debounced search
-  const debouncedSearch = debounce((term: string) => {
-    setFilters(prev => ({ ...prev, busqueda: term }));
-  }, 300);
-
-  // Efecto para filtrar eventos
   useEffect(() => {
-    if (eventos) {
-      const filtered = filterEventos(eventos, filters);
-      setFilteredEventos(filtered);
+    debouncedSetFilter(searchTerm);
+  }, [searchTerm, debouncedSetFilter]);
+
+  // FILTRADO UNIFICADO: Una sola fuente de verdad
+  const filteredAndGroupedEventos = useMemo(() => {
+    if (!eventos || eventos.length === 0) {
+      return {
+        filtered: [],
+        grouped: { today: [], tomorrow: [], thisWeek: [], upcoming: [] } as GroupedEvents,
+        totalCount: 0
+      };
     }
+
+    // 1. Aplicar filtros
+    const filtered = filterEventos(eventos, filters);
+    
+    // 2. Agrupar por fechas
+    const grouped: GroupedEvents = {
+      today: [],
+      tomorrow: [],
+      thisWeek: [],
+      upcoming: [],
+    };
+
+    // 3. Ordenar por fecha antes de agrupar
+    const sortedEvents = [...filtered].sort((a, b) =>
+      new Date(a.fecha_inicio).getTime() - new Date(b.fecha_inicio).getTime()
+    );
+
+    // 4. Agrupar eventos sin duplicación
+    const processedIds = new Set<string>();
+    
+    sortedEvents.forEach((evento) => {
+      // Crear ID único para evitar duplicados
+      const uniqueId = `${evento.id}-${evento.titulo}-${evento.fecha_inicio}`;
+      
+      if (processedIds.has(uniqueId)) {
+        console.warn(`Evento duplicado detectado y omitido: ${evento.titulo}`);
+        return;
+      }
+      
+      processedIds.add(uniqueId);
+      
+      // Agrupar por fecha
+      if (isToday(evento.fecha_inicio)) {
+        grouped.today.push(evento);
+      } else if (isTomorrow(evento.fecha_inicio)) {
+        grouped.tomorrow.push(evento);
+      } else if (isThisWeek(evento.fecha_inicio)) {
+        grouped.thisWeek.push(evento);
+      } else if (isUpcoming(evento.fecha_inicio)) {
+        grouped.upcoming.push(evento);
+      }
+    });
+
+    return {
+      filtered,
+      grouped,
+      totalCount: filtered.length
+    };
   }, [eventos, filters]);
 
-  // Efecto para agrupar eventos por fecha
-  useEffect(() => {
-    if (filteredEventos) {
-      const today: Evento[] = [];
-      const tomorrow: Evento[] = [];
-      const thisWeek: Evento[] = [];
-      const upcoming: Evento[] = [];
+  // Destructurar resultados
+  const { filtered: filteredEventos, grouped: groupedEventos, totalCount } = filteredAndGroupedEventos;
 
-      // Sort events by date before grouping
-      const sortedEvents = [...filteredEventos].sort((a, b) =>
-        new Date(a.fecha_inicio).getTime() - new Date(b.fecha_inicio).getTime()
-      );
-
-      sortedEvents.forEach((evento) => {
-        if (isToday(evento.fecha_inicio)) {
-          today.push(evento);
-        } else if (isTomorrow(evento.fecha_inicio)) {
-          tomorrow.push(evento);
-        } else if (isThisWeek(evento.fecha_inicio)) {
-          thisWeek.push(evento);
-        } else if (isUpcoming(evento.fecha_inicio)) {
-          upcoming.push(evento);
-        }
-      });
-
-      setGroupedEventos({ today, tomorrow, thisWeek, upcoming });
-    }
-  }, [filteredEventos]);
-
-  // Efecto para búsqueda
-  useEffect(() => {
-    debouncedSearch(searchTerm);
-  }, [searchTerm, debouncedSearch]);
-
+  // Handlers
   const handleCategoryFilter = (categoria: EventoCategoria | undefined) => {
     setFilters(prev => ({ ...prev, categoria }));
   };
@@ -220,7 +241,13 @@ export default function HomePage() {
 
       {/* Contenido principal */}
       <main className="container-wide py-4">
-        
+        {/* Debug info - Solo en desarrollo */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm">
+            <strong>Debug Info:</strong> {eventos?.length || 0} eventos totales, {totalCount} filtrados, 
+            Filtros activos: {activeFiltersCount}
+          </div>
+        )}
 
         {/* Estados de carga y error */}
         {eventosLoading && (
@@ -251,7 +278,7 @@ export default function HomePage() {
         {!eventosLoading && !eventosError && (
           <>
             {/* No hay eventos */}
-            {filteredEventos.length === 0 && ( // Use filteredEventos here for the overall empty state
+            {totalCount === 0 && (
               <div className="text-center py-12">
                 <div className="bg-gray-100 rounded-full w-24 h-24 mx-auto mb-4 flex items-center justify-center">
                   <CalendarIcon className="h-12 w-12 text-gray-400" />
@@ -279,10 +306,12 @@ export default function HomePage() {
             {/* Eventos de Hoy */}
             {groupedEventos.today.length > 0 && (
               <div className="mb-4">
-                <h2 className="text-3xl font-bold text-gray-900 mb-3">Hoy</h2>
+                <h2 className="text-3xl font-bold text-gray-900 mb-3">
+                  Hoy ({groupedEventos.today.length})
+                </h2>
                 <div className="space-y-4">
                   {groupedEventos.today.map((evento, index) => (
-                    <div key={evento.id} className="animate-fade-in" style={{ animationDelay: `${index * 50}ms` }}>
+                    <div key={`today-${evento.id}-${index}`} className="animate-fade-in" style={{ animationDelay: `${index * 50}ms` }}>
                       <EventCard evento={evento} />
                     </div>
                   ))}
@@ -293,10 +322,12 @@ export default function HomePage() {
             {/* Eventos de Mañana */}
             {groupedEventos.tomorrow.length > 0 && (
               <div className="mb-4">
-                <h2 className="text-3xl font-bold text-gray-900 mb-3">Mañana</h2>
+                <h2 className="text-3xl font-bold text-gray-900 mb-3">
+                  Mañana ({groupedEventos.tomorrow.length})
+                </h2>
                 <div className="space-y-4">
                   {groupedEventos.tomorrow.map((evento, index) => (
-                    <div key={evento.id} className="animate-fade-in" style={{ animationDelay: `${index * 50}ms` }}>
+                    <div key={`tomorrow-${evento.id}-${index}`} className="animate-fade-in" style={{ animationDelay: `${index * 50}ms` }}>
                       <EventCard evento={evento} />
                     </div>
                   ))}
@@ -307,10 +338,12 @@ export default function HomePage() {
             {/* Eventos Esta Semana */}
             {groupedEventos.thisWeek.length > 0 && (
               <div className="mb-4">
-                <h2 className="text-3xl font-bold text-gray-900 mb-3">Esta Semana</h2>
+                <h2 className="text-3xl font-bold text-gray-900 mb-3">
+                  Esta Semana ({groupedEventos.thisWeek.length})
+                </h2>
                 <div className="space-y-4">
                   {groupedEventos.thisWeek.map((evento, index) => (
-                    <div key={evento.id} className="animate-fade-in" style={{ animationDelay: `${index * 50}ms` }}>
+                    <div key={`week-${evento.id}-${index}`} className="animate-fade-in" style={{ animationDelay: `${index * 50}ms` }}>
                       <EventCard evento={evento} />
                     </div>
                   ))}
@@ -321,10 +354,12 @@ export default function HomePage() {
             {/* Próximos Eventos */}
             {groupedEventos.upcoming.length > 0 && (
               <div className="mb-4">
-                <h2 className="text-3xl font-bold text-gray-900 mb-3">Próximos Eventos</h2>
+                <h2 className="text-3xl font-bold text-gray-900 mb-3">
+                  Próximos Eventos ({groupedEventos.upcoming.length})
+                </h2>
                 <div className="space-y-4">
                   {groupedEventos.upcoming.map((evento, index) => (
-                    <div key={evento.id} className="animate-fade-in" style={{ animationDelay: `${index * 50}ms` }}>
+                    <div key={`upcoming-${evento.id}-${index}`} className="animate-fade-in" style={{ animationDelay: `${index * 50}ms` }}>
                       <EventCard evento={evento} />
                     </div>
                   ))}
@@ -335,7 +370,7 @@ export default function HomePage() {
         )}
 
         {/* Información adicional */}
-        {!eventosLoading && filteredEventos.length > 0 && (
+        {!eventosLoading && totalCount > 0 && (
           <div className="mt-12 bg-blue-50 border border-blue-200 rounded-lg p-6">
             <h3 className="text-lg font-medium text-blue-900 mb-2">
               ℹ️ Información importante
@@ -345,6 +380,7 @@ export default function HomePage() {
               <li>• La información se actualiza semanalmente desde fuentes oficiales</li>
               <li>• Recomendamos confirmar horarios y disponibilidad antes de asistir</li>
               <li>• Para más información, contacta directamente con el organizador del evento</li>
+              <li>• Mostrando {totalCount} evento{totalCount !== 1 ? 's' : ''} {activeFiltersCount > 0 ? 'filtrados' : ''}</li>
             </ul>
           </div>
         )}

@@ -10,7 +10,7 @@ from typing import Any, Dict, List, Optional
 
 from sqlalchemy.orm import Session
 
-from backend.core import get_settings
+from core import get_settings
 
 settings = get_settings()
 

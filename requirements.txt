@@ -1,45 +1,39 @@
-# =============================================================================
-# PROYECTO EVENTOS MAYORES - Requirements Simplificado (Julio 2025)
-# Solo lo esencial para agentes específicos por fuente (SSReyes, Madrid, etc.)
-# =============================================================================
+# Backend Requirements - Solo lo esencial
 
-# ============= CORE FRAMEWORK =============
-fastapi>=0.104.0
-uvicorn[standard]>=0.24.0
-pydantic>=2.5.0
-pydantic-settings>=2.1.0
+# Framework web
+fastapi
+uvicorn[standard]
+python-multipart
 
-# ============= BASE DE DATOS =============
-sqlalchemy>=2.0.0
-# sqlite3 incluido en Python
+# Database
+sqlalchemy
+alembic
 
-# ============= IA Y LANGCHAIN (Solo lo esencial) =============
-langchain>=0.3.0
-langchain-core>=0.3.0
-langchain-openai>=0.3.24
-langchain-anthropic>=0.2.0
-# Eliminado: langgraph (innecesario para agentes específicos)
+# AI/LLM 
+langchain
+langchain-core
+langchain-openai
+langchain-anthropic
+langgraph
 
-# ============= EXTRACCIÓN PDF =============
-docling>=1.0.0
-docling-core>=1.0.0
-# Eliminado: docling-parse (innecesario para caso simple)
+# Document processing
+docling
+pymupdf
+python-docx
+openpyxl
 
-# ============= APIs DE IA =============
-openai>=1.51.0
-anthropic>=0.40.0
+# Web scraping
+playwright
+beautifulsoup4
+requests
 
-# ============= UTILIDADES =============
-python-dotenv>=1.0.0
-python-multipart>=0.0.6
-aiofiles>=23.0.0
-pyyaml>=6.0.1
+# Core utilities
+pydantic
+pydantic-settings
+python-dotenv
+python-jose[cryptography]
+passlib[bcrypt]
+PyYAML
 
-# ============= AUTENTICACIÓN =============
-PyJWT>=2.8.0
-
-# ============= DESARROLLO (Opcional) =============
-# Descomenta solo si necesitas:
-# pytest>=7.4.0
-# pytest-asyncio>=0.21.0
-# black>=23.0.0
+# Production
+gunicorn

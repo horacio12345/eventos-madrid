@@ -252,3 +252,129 @@ def get_logs(fuente_id: int = None, limit: int = 100, db: Session = Depends(get_
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error obteniendo logs: {str(e)}")
+
+
+
+
+# Añadir estos endpoints al final de backend/api/routes/admin.py
+
+@router.post("/ssreyes/cleanup-duplicates")
+async def cleanup_ssreyes_duplicates():
+    """
+    Limpiar duplicados existentes del agente SSReyes
+    """
+    try:
+        print("🧹 [ADMIN] Starting SSReyes duplicates cleanup...")
+        
+        agent = SSReyesAgent()
+        result = agent.cleanup_duplicates()
+        
+        print(f"✅ [ADMIN] Cleanup completed: {result}")
+        
+        return {
+            "estado": "success",
+            "duplicates_removed": result['duplicates_removed'],
+            "total_events_processed": result['total_events_processed'],
+            "message": f"Se eliminaron {result['duplicates_removed']} eventos duplicados"
+        }
+        
+    except Exception as e:
+        print(f"💥 [ADMIN] Cleanup failed: {str(e)}")
+        return {
+            "estado": "error",
+            "error": str(e),
+            "duplicates_removed": 0
+        }
+
+@router.get("/stats")
+def get_system_stats(db: Session = Depends(get_db)):
+    """
+    Obtener estadísticas del sistema para debugging
+    """
+    try:
+        from sqlalchemy import func, distinct
+        
+        # Estadísticas generales
+        total_eventos = db.query(func.count(Evento.id)).scalar()
+        eventos_activos = db.query(func.count(Evento.id)).filter(Evento.activo == True).scalar()
+        
+        # Estadísticas por fuente
+        eventos_por_fuente = db.query(
+            Evento.fuente_nombre,
+            func.count(Evento.id).label('total')
+        ).group_by(Evento.fuente_nombre).all()
+        
+        # Detectar posibles duplicados
+        duplicados_potenciales = db.query(
+            Evento.titulo,
+            Evento.fecha_inicio,
+            func.count(Evento.id).label('count')
+        ).group_by(
+            Evento.titulo, 
+            Evento.fecha_inicio
+        ).having(func.count(Evento.id) > 1).all()
+        
+        # Eventos sin hash
+        eventos_sin_hash = db.query(func.count(Evento.id)).filter(
+            Evento.hash_contenido.is_(None)
+        ).scalar()
+        
+        return {
+            "total_eventos": total_eventos,
+            "eventos_activos": eventos_activos,
+            "eventos_por_fuente": [
+                {"fuente": fuente, "total": total} 
+                for fuente, total in eventos_por_fuente
+            ],
+            "duplicados_potenciales": len(duplicados_potenciales),
+            "eventos_sin_hash": eventos_sin_hash,
+            "duplicados_detalle": [
+                {
+                    "titulo": titulo,
+                    "fecha": str(fecha),
+                    "count": count
+                }
+                for titulo, fecha, count in duplicados_potenciales[:10]  # Solo primeros 10
+            ] if duplicados_potenciales else []
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/fix-hashes")
+def fix_missing_hashes(db: Session = Depends(get_db)):
+    """
+    Generar hashes faltantes para eventos existentes
+    """
+    try:
+        from services.event_normalizer import EventNormalizer
+        import hashlib
+        
+        normalizer = EventNormalizer()
+        
+        # Buscar eventos sin hash
+        eventos_sin_hash = db.query(Evento).filter(
+            Evento.hash_contenido.is_(None)
+        ).all()
+        
+        updated_count = 0
+        
+        for evento in eventos_sin_hash:
+            # Generar hash
+            key_content = f"{evento.titulo}{evento.fecha_inicio}{evento.ubicacion or ''}"
+            hash_contenido = hashlib.sha256(key_content.encode("utf-8")).hexdigest()
+            
+            evento.hash_contenido = hash_contenido
+            updated_count += 1
+        
+        db.commit()
+        
+        return {
+            "estado": "success",
+            "eventos_actualizados": updated_count,
+            "message": f"Se generaron hashes para {updated_count} eventos"
+        }
+        
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))

@@ -1,7 +1,7 @@
 # agents/ssreyes_agent.py
 
 """
-Agente específico para San Sebastián de los Reyes - Versión simplificada
+Agente específico para San Sebastián de los Reyes - Versión mejorada sin duplicados
 """
 import json
 import os
@@ -17,8 +17,15 @@ from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.prompts import PromptTemplate
 from langchain_openai import ChatOpenAI
 from docling.document_converter import DocumentConverter
+from sqlalchemy.orm import Session
+from sqlalchemy import and_
 
 from core import get_settings
+from core.database import SessionLocal
+from core.models import Evento
+
+# IMPORTAR EL NORMALIZADOR
+from services.event_normalizer import EventNormalizer
 
 settings = get_settings()
 
@@ -26,6 +33,7 @@ settings = get_settings()
 class SSReyesAgent:
     """
     Agente específico para extraer eventos de San Sebastián de los Reyes
+    VERSIÓN MEJORADA - Sin duplicados
     """
 
     def __init__(self):
@@ -42,6 +50,9 @@ class SSReyesAgent:
         
         # JSON output parser
         self.json_parser = JsonOutputParser()
+        
+        # INICIALIZAR NORMALIZADOR
+        self.normalizer = EventNormalizer()
         
         # Create prompt template
         self.extraction_prompt = PromptTemplate(
@@ -63,6 +74,7 @@ class SSReyesAgent:
     async def extract_events_from_pdf(self, pdf_url: str) -> Dict:
         """
         Extract events from SSReyes PDF using specific instructions
+        VERSIÓN MEJORADA - Con detección de duplicados
         """
         try:
             print(f"🔍 [SSReyes] Starting extraction from: {pdf_url}")
@@ -81,15 +93,28 @@ class SSReyesAgent:
             
             # Step 3: Process and validate response
             if isinstance(response, dict) and "eventos" in response:
-                eventos = response["eventos"]
-                print(f"✅ [SSReyes] Extracted {len(eventos)} events")
+                eventos_raw = response["eventos"]
+                print(f"✅ [SSReyes] Extracted {len(eventos_raw)} raw events")
                 
-                # Step 4: Save events to database
-                save_result = self.save_eventos_to_db(eventos, pdf_url)
-                print(f"💾 [SSReyes] Saved {save_result['guardados']} events to database")
+                # Step 4: NORMALIZAR EVENTOS (incluye detección de duplicados)
+                mapeo_campos = {
+                    "titulo": "titulo",
+                    "fecha_inicio": "fecha_inicio",
+                    "categoria": "categoria",
+                    "precio": "precio",
+                    "ubicacion": "ubicacion",
+                    "descripcion": "descripcion"
+                }
+                
+                eventos_normalizados = self.normalizer.batch_normalize(eventos_raw, mapeo_campos)
+                print(f"🔧 [SSReyes] Normalized to {len(eventos_normalizados)} events")
+                
+                # Step 5: Save events to database WITH DEDUPLICATION
+                save_result = self.save_eventos_to_db_deduped(eventos_normalizados, pdf_url)
+                print(f"💾 [SSReyes] Saved {save_result['guardados']} events (skipped {save_result['duplicados']} duplicates)")
                 
                 # Add metadata to each event
-                for evento in eventos:
+                for evento in eventos_normalizados:
                     evento["fuente_nombre"] = "San Sebastián de los Reyes"
                     evento["url_original"] = pdf_url
                     evento["fecha_extraccion"] = datetime.now().isoformat()
@@ -102,9 +127,11 @@ class SSReyesAgent:
                 
                 return {
                     "estado": "success",
-                    "eventos_encontrados": len(eventos),
+                    "eventos_encontrados": len(eventos_raw),
+                    "eventos_normalizados": len(eventos_normalizados),
                     "eventos_guardados": save_result['guardados'],
-                    "eventos": eventos,
+                    "eventos_duplicados": save_result['duplicados'],
+                    "eventos": eventos_normalizados,
                     "fuente": "SSReyes",
                     "pdf_url": pdf_url,
                     "timestamp": datetime.now().isoformat()
@@ -127,34 +154,68 @@ class SSReyesAgent:
                 "pdf_url": pdf_url
             }
 
-    def save_eventos_to_db(self, eventos: List[Dict], pdf_url: str) -> Dict:
-        """Save events to database"""
-        from core.database import SessionLocal
-        from core.models import Evento
-        
+    def save_eventos_to_db_deduped(self, eventos: List[Dict], pdf_url: str) -> Dict:
+        """
+        Save events to database WITH DUPLICATE DETECTION
+        """
         saved_count = 0
+        duplicate_count = 0
         db = SessionLocal()
         
         try:
             for evento_data in eventos:
+                # Verificar si ya existe un evento con el mismo hash
+                hash_contenido = evento_data.get('hash_contenido')
+                
+                if hash_contenido:
+                    existing_evento = db.query(Evento).filter(
+                        Evento.hash_contenido == hash_contenido
+                    ).first()
+                    
+                    if existing_evento:
+                        print(f"⚠️ [SSReyes] Duplicate detected: {evento_data['titulo']}")
+                        duplicate_count += 1
+                        continue
+                
+                # También verificar por título + fecha + ubicación como backup
+                existing_by_content = db.query(Evento).filter(
+                    and_(
+                        Evento.titulo == evento_data["titulo"],
+                        Evento.fecha_inicio == datetime.strptime(evento_data["fecha_inicio"], "%Y-%m-%d").date(),
+                        Evento.ubicacion == evento_data.get("ubicacion", "")
+                    )
+                ).first()
+                
+                if existing_by_content:
+                    print(f"⚠️ [SSReyes] Content duplicate detected: {evento_data['titulo']}")
+                    duplicate_count += 1
+                    continue
+                
                 # Crear objeto Evento
                 evento = Evento(
                     titulo=evento_data["titulo"],
                     fecha_inicio=datetime.strptime(evento_data["fecha_inicio"], "%Y-%m-%d").date(),
                     categoria=evento_data["categoria"],
                     precio=evento_data["precio"],
-                    ubicacion=evento_data["ubicacion"],
-                    descripcion=evento_data["descripcion"],
+                    ubicacion=evento_data.get("ubicacion"),
+                    descripcion=evento_data.get("descripcion"),
+                    hash_contenido=hash_contenido,
                     fuente_id=1,  # SSReyes
                     fuente_nombre="San Sebastián de los Reyes",
-                    url_original=pdf_url
+                    url_original=pdf_url,
+                    datos_extra=evento_data.get("datos_extra"),
+                    activo=True
                 )
                 db.add(evento)
                 saved_count += 1
+                print(f"✅ [SSReyes] Added new event: {evento_data['titulo']}")
             
             db.commit()
-            print(f"✅ [SSReyes] Successfully saved {saved_count} events to database")
-            return {"guardados": saved_count}
+            print(f"✅ [SSReyes] Successfully saved {saved_count} events, skipped {duplicate_count} duplicates")
+            return {
+                "guardados": saved_count,
+                "duplicados": duplicate_count
+            }
             
         except Exception as e:
             db.rollback()
@@ -163,6 +224,14 @@ class SSReyesAgent:
         finally:
             db.close()
 
+    def save_eventos_to_db(self, eventos: List[Dict], pdf_url: str) -> Dict:
+        """
+        MÉTODO LEGACY - Usar save_eventos_to_db_deduped en su lugar
+        Mantenerlo para compatibilidad hacia atrás
+        """
+        print("⚠️ [SSReyes] Using legacy save method, consider upgrading to deduped version")
+        return self.save_eventos_to_db_deduped(eventos, pdf_url)
+
     def get_config_info(self) -> Dict:
         """Get configuration info for debugging"""
         return {
@@ -170,5 +239,48 @@ class SSReyesAgent:
             "domain": self.config["source_info"]["domain"],
             "type": self.config["source_info"]["type"],
             "default_location": self.config["extraction_config"]["default_location"],
-            "default_price": self.config["extraction_config"]["default_price"]
+            "default_price": self.config["extraction_config"]["default_price"],
+            "normalizer_enabled": True,  # Nueva información
+            "deduplication_enabled": True
         }
+    
+    def cleanup_duplicates(self) -> Dict:
+        """
+        Método de utilidad para limpiar duplicados existentes
+        """
+        db = SessionLocal()
+        try:
+            # Buscar eventos con el mismo título, fecha y ubicación
+            eventos = db.query(Evento).filter(Evento.fuente_nombre == "San Sebastián de los Reyes").all()
+            
+            seen_hashes = set()
+            duplicates_removed = 0
+            
+            for evento in eventos:
+                # Generar hash si no lo tiene
+                if not evento.hash_contenido:
+                    key_content = f"{evento.titulo}{evento.fecha_inicio}{evento.ubicacion or ''}"
+                    evento.hash_contenido = self.normalizer._generate_hash({"titulo": evento.titulo, "fecha_inicio": str(evento.fecha_inicio), "ubicacion": evento.ubicacion})
+                    
+                # Si ya vimos este hash, eliminar el duplicado
+                if evento.hash_contenido in seen_hashes:
+                    db.delete(evento)
+                    duplicates_removed += 1
+                    print(f"🗑️ [SSReyes] Removed duplicate: {evento.titulo}")
+                else:
+                    seen_hashes.add(evento.hash_contenido)
+            
+            db.commit()
+            print(f"🧹 [SSReyes] Cleanup completed: removed {duplicates_removed} duplicates")
+            
+            return {
+                "duplicates_removed": duplicates_removed,
+                "total_events_processed": len(eventos)
+            }
+            
+        except Exception as e:
+            db.rollback()
+            print(f"❌ [SSReyes] Error during cleanup: {str(e)}")
+            raise e
+        finally:
+            db.close()
