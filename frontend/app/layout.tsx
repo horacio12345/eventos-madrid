@@ -59,26 +59,6 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es" className={inter.variable}>
-      <head>
-        {/* Favicon y iconos */}
-        <link rel="icon" href="/favicon.ico" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-        <link rel="manifest" href="/manifest.json" />
-        
-        {/* Meta tags adicionales para accesibilidad */}
-        <meta name="theme-color" content="#0ea5e9" />
-        <meta name="msapplication-TileColor" content="#0ea5e9" />
-        <meta name="msapplication-TileImage" content="/ms-icon-144x144.png" />
-        
-        {/* Preload de fonts críticas */}
-        <link
-          rel="preload"
-          href="/fonts/inter-var.woff2"
-          as="font"
-          type="font/woff2"
-          crossOrigin=""
-        />
-      </head>
       <body 
         className={`
           ${inter.className} 
@@ -117,21 +97,6 @@ export default function RootLayout({
         <div id="main-content" className="min-h-screen">
           {children}
         </div>
-
-        {/* Scripts de analytics (solo en producción) */}
-        {process.env.NODE_ENV === 'production' && (
-          <>
-            {/* Google Analytics */}
-            <script
-              dangerouslySetInnerHTML={{
-                __html: `
-                  // Google Analytics code aquí si es necesario
-                  console.log('Eventos Mayores Madrid - Producción');
-                `,
-              }}
-            />
-          </>
-        )}
       </body>
     </html>
   );

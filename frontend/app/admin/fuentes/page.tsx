@@ -171,10 +171,14 @@ export default function AgentesPage() {
   };
 
   const handleProcessFile = async () => {
-    if (!uploadState.uploadedFilePath) return;
+    if (!uploadState.uploadedFilePath || !selectedAgente) return;
     setUploadState(prev => ({ ...prev, processing: true, error: '' }));
     try {
-      const result = await api.admin.extractEvents('ssreyes', { pdf_url: uploadState.uploadedFilePath });
+      const result = await api.admin.extractEvents('ssreyes', { 
+        pdf_url: uploadState.uploadedFilePath,
+        fuente_id: selectedAgente.id,
+        fuente_nombre: selectedAgente.nombre
+      });
       if (result.estado === 'error') throw new Error(result.error || 'El backend devolvió un error');
       setUploadState(prev => ({ ...prev, processing: false, events: result.eventos || [], step: 'preview' }));
     } catch (error) {

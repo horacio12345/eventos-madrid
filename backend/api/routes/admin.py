@@ -40,8 +40,11 @@ async def extract_ssreyes_events(request: dict):
 
         print(f"🚀 [ADMIN] Starting SSReyes extraction for: {pdf_absolute_path}")
         
-        # Use specific SSReyes agent
-        agent = SSReyesAgent()
+        # OBTENER ID DEL AGENTE DINÁMICAMENTE
+        fuente_id = request.get("fuente_id")  # Nuevo parámetro
+        fuente_nombre = request.get("fuente_nombre")  # Nuevo parámetro
+        
+        agent = SSReyesAgent(fuente_id=fuente_id, fuente_nombre=fuente_nombre)
         result = await agent.extract_events_from_pdf(pdf_absolute_path)
         
         print(f"✅ [ADMIN] SSReyes extraction completed: {result['estado']}")
@@ -269,23 +272,7 @@ def delete_fuente(fuente_id: int, db: Session = Depends(get_db)):
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
-    
-# ============= LOGS =============
 
-@router.get("/logs")
-def get_logs(fuente_id: int = None, limit: int = 100, db: Session = Depends(get_db)):
-    """Obtener los logs de scraping, con filtro opcional por fuente."""
-    try:
-        query = db.query(LogsScraping).order_by(LogsScraping.fecha_inicio.desc())
-        
-        if fuente_id:
-            query = query.filter(LogsScraping.fuente_id == fuente_id)
-            
-        logs = query.limit(limit).all()
-        return logs
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error obteniendo logs: {str(e)}")
 
 # ============= SSREYES CLEANUP & STATS =============
 
@@ -371,6 +358,45 @@ def get_system_stats(db: Session = Depends(get_db)):
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============= LOGS =============
+
+@router.get("/logs")
+def get_logs(fuente_id: int = None, limit: int = 100, db: Session = Depends(get_db)):
+    """Obtener los logs de scraping, con filtro opcional por fuente."""
+    try:
+        query = db.query(LogScraping).order_by(LogScraping.fecha_inicio.desc())
+        
+        if fuente_id:
+            query = query.filter(LogScraping.fuente_id == fuente_id)
+            
+        logs = query.limit(limit).all()
+        
+        # Convertir a diccionarios para serialización
+        logs_data = []
+        for log in logs:
+            logs_data.append({
+                "id": log.id,
+                "fuente_id": log.fuente_id,
+                "fuente_nombre": log.fuente_nombre,
+                "fecha_inicio": log.fecha_inicio.isoformat() if log.fecha_inicio else None,
+                "fecha_fin": log.fecha_fin.isoformat() if log.fecha_fin else None,
+                "estado": log.estado,
+                "eventos_extraidos": log.eventos_extraidos,
+                "eventos_nuevos": log.eventos_nuevos,
+                "eventos_actualizados": log.eventos_actualizados,
+                "mensaje": log.mensaje,
+                "detalles_error": log.detalles_error,
+                "tiempo_ejecucion_segundos": log.tiempo_ejecucion_segundos
+            })
+        
+        return logs_data
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error obteniendo logs: {str(e)}")
+
+# ============= FIX HASHES =============
 
 @router.post("/fix-hashes")
 def fix_missing_hashes(db: Session = Depends(get_db)):

@@ -3,7 +3,6 @@
 """
 Agente específico para San Sebastián de los Reyes - Versión mejorada sin duplicados
 """
-import json
 import os
 import sys
 import yaml
@@ -22,7 +21,7 @@ from sqlalchemy import and_
 
 from core import get_settings
 from core.database import SessionLocal
-from core.models import Evento
+from core.models import Evento, FuenteWeb
 
 # IMPORTAR EL NORMALIZADOR
 from services.event_normalizer import EventNormalizer
@@ -36,7 +35,15 @@ class SSReyesAgent:
     VERSIÓN MEJORADA - Sin duplicados
     """
 
-    def __init__(self):
+    def __init__(self, fuente_id: int = None, fuente_nombre: str = None):
+        # DINÁMICO: Obtener datos de la fuente
+        self.fuente_id = fuente_id
+        self.fuente_nombre = fuente_nombre
+        
+        # Si no se proporcionan, obtener de la DB
+        if not self.fuente_id or not self.fuente_nombre:
+            self._load_fuente_info()
+
         # Initialize LLM
         if settings.openai_api_key:
             self.llm = ChatOpenAI(api_key=settings.openai_api_key, model=settings.openai_model, temperature=0)
@@ -59,6 +66,27 @@ class SSReyesAgent:
             input_variables=["texto"],
             template=self.config["prompts"]["extraction_prompt"],
         )
+    
+
+    def _load_fuente_info(self):
+        """Cargar información de la fuente desde la base de datos"""
+        db = SessionLocal()
+        try:
+            # Buscar fuente de tipo SSReyes
+            fuente = db.query(FuenteWeb).filter(
+                FuenteWeb.nombre.ilike('%reyes%')
+            ).first()
+            
+            if fuente:
+                self.fuente_id = fuente.id
+                self.fuente_nombre = fuente.nombre
+            else:
+                # Valores por defecto
+                self.fuente_id = 1
+                self.fuente_nombre = "San Sebastián de los Reyes"
+        finally:
+            db.close()
+
 
     def _load_ssreyes_config(self) -> Dict:
         """Load SSReyes specific configuration from YAML"""
@@ -206,8 +234,8 @@ class SSReyesAgent:
                     ubicacion=evento_data.get("ubicacion"),
                     descripcion=evento_data.get("descripcion"),
                     hash_contenido=hash_contenido,
-                    fuente_id=1,  # SSReyes
-                    fuente_nombre="San Sebastián de los Reyes",
+                    fuente_id=self.fuente_id,
+                    fuente_nombre=self.fuente_nombre,
                     url_original=pdf_url,
                     datos_extra=evento_data.get("datos_extra"),
                     activo=True

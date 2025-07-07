@@ -13,7 +13,7 @@ settings = get_settings()
 # ============= ENGINE SQLite =============
 engine = create_engine(
     settings.database_url,
-    echo=settings.debug,  # Mostrar SQL en desarrollo
+    echo=False,  # Mostrar SQL en desarrollo
     pool_pre_ping=True,  # Verificar conexión antes de usar
 )
 
