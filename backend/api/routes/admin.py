@@ -37,8 +37,6 @@ async def extract_ssreyes_events(request: dict):
 
         if not os.path.exists(pdf_absolute_path):
             raise HTTPException(status_code=404, detail=f"El fichero no se encontró en la ruta: {pdf_absolute_path}")
-
-        print(f"🚀 [ADMIN] Starting SSReyes extraction for: {pdf_absolute_path}")
         
         # OBTENER ID DEL AGENTE DINÁMICAMENTE
         fuente_id = request.get("fuente_id")  # Nuevo parámetro
@@ -46,13 +44,10 @@ async def extract_ssreyes_events(request: dict):
         
         agent = SSReyesAgent(fuente_id=fuente_id, fuente_nombre=fuente_nombre)
         result = await agent.extract_events_from_pdf(pdf_absolute_path)
-        
-        print(f"✅ [ADMIN] SSReyes extraction completed: {result['estado']}")
-        
+                
         return result
         
     except Exception as e:
-        print(f"💥 [ADMIN] SSReyes extraction failed: {str(e)}")
         return {
             "estado": "error",
             "error": str(e),
@@ -279,12 +274,10 @@ async def cleanup_ssreyes_duplicates():
     Limpiar duplicados existentes del agente SSReyes
     """
     try:
-        print("🧹 [ADMIN] Starting SSReyes duplicates cleanup...")
-        
         agent = SSReyesAgent()
         result = agent.cleanup_duplicates()
         
-        print(f"✅ [ADMIN] Cleanup completed: {result}")
+        return result
         
         return {
             "estado": "success",
@@ -294,7 +287,6 @@ async def cleanup_ssreyes_duplicates():
         }
         
     except Exception as e:
-        print(f"💥 [ADMIN] Cleanup failed: {str(e)}")
         return {
             "estado": "error",
             "error": str(e),

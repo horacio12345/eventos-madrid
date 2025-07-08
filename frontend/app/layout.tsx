@@ -11,29 +11,29 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'Eventos Mayores Madrid',
+  title: 'Agenda Activa',
   description: 'Descubre eventos gratuitos y de bajo coste para personas mayores en la Comunidad de Madrid',
   keywords: ['eventos', 'mayores', 'Madrid', 'actividades', 'cultura', 'gratuito', 'tercera edad'],
-  authors: [{ name: 'Eventos Mayores Madrid' }],
-  creator: 'Eventos Mayores Madrid',
-  publisher: 'Eventos Mayores Madrid',
+  authors: [{ name: 'Agenda Activa' }],
+  creator: 'Horacio Rodriguez C.',
+  publisher: 'Horacio Rodriguez C.',
   formatDetection: {
     email: false,
     address: false,
     telephone: false,
   },
   openGraph: {
-    title: 'Eventos Mayores Madrid',
-    description: 'Descubre eventos gratuitos y de bajo coste para personas mayores en la Comunidad de Madrid',
-    url: 'https://eventos-mayores-madrid.com',
-    siteName: 'Eventos Mayores Madrid',
+    title: 'Agenda Activa',
+    description: 'Eventos gratuitos y de bajo coste para Seniors',
+    url: 'seniors.horacioai.com',
+    siteName: 'Agenda Activa',
     locale: 'es_ES',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Eventos Mayores Madrid',
-    description: 'Descubre eventos gratuitos y de bajo coste para personas mayores en la Comunidad de Madrid',
+    title: 'Agenda Activa',
+    description: 'Eventos gratuitos y de bajo coste para Seniors',
   },
   robots: {
     index: true,

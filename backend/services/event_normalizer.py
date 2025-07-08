@@ -112,7 +112,6 @@ class EventNormalizer:
             return evento_normalizado
 
         except Exception as e:
-            print(f"Error normalizando evento: {e}")
             return None
 
     def _apply_field_mapping(self, evento_raw: Dict, mapeo_campos: Dict) -> Dict:
