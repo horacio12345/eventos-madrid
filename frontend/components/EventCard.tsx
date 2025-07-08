@@ -1,4 +1,4 @@
-// components/EventCard.tsx - VERSIÓN FUNCIONAL SIN ERRORES
+// components/EventCard.tsx
 
 'use client';
 
@@ -55,7 +55,7 @@ export default function EventCard({ evento }: EventCardProps) {
   const extractedDetails = extractEventDetails ? extractEventDetails(evento.descripcion || '', evento.datos_extra) : [];
 
   const IconComponent = ({ iconName }: { iconName: string }) => {
-    const iconProps = "h-6 w-6 text-muted-500 flex-shrink-0";
+    const iconProps = "h-4 w-4 text-muted-500 flex-shrink-0";
     
     switch (iconName) {
       case 'ClockIcon': return <ClockIcon className={iconProps} />;
@@ -71,28 +71,28 @@ export default function EventCard({ evento }: EventCardProps) {
       
       {/* Indicador visual de urgencia */}
       {dateUrgency === 'today' && (
-        <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-red-500 via-orange-500 to-red-500 animate-pulse-gentle"></div>
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-red-500 via-orange-500 to-red-500 animate-pulse-gentle"></div>
       )}
       {dateUrgency === 'tomorrow' && (
-        <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-orange-500 via-yellow-500 to-orange-500"></div>
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-orange-500 via-yellow-500 to-orange-500"></div>
       )}
 
       {/* Header */}
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center gap-3 flex-1">
+      <div className="flex items-start justify-between mb-2">
+        <div className="flex items-center gap-2 flex-1">
           {/* Categoría */}
-          <div className="flex items-center gap-2 bg-primary/10 px-3 py-1 rounded-lg border border-primary/20">
-            <span className="text-lg">{categoriaConfig.emoji}</span>
-            <span className="text-base font-bold text-primary">
+          <div className="flex items-center gap-1.5 bg-primary/10 px-2 py-1 rounded-md border border-primary/20">
+            <span className="text-sm">{categoriaConfig.emoji}</span>
+            <span className="text-sm font-bold text-primary">
               {evento.categoria}
             </span>
           </div>
           
           {/* Indicador de urgencia */}
           {(dateUrgency === 'today' || dateUrgency === 'tomorrow') && (
-            <div className={`flex items-center gap-2 px-3 py-1 rounded-lg border ${dateStyles[dateUrgency]}`}>
-              <ClockIcon className="h-4 w-4" />
-              <span className="text-sm font-bold">
+            <div className={`flex items-center gap-1 px-2 py-0.5 rounded-md border text-xs ${dateStyles[dateUrgency]}`}>
+              <ClockIcon className="h-3 w-3" />
+              <span className="font-bold">
                 {dateUrgency === 'today' ? '¡HOY!' : '¡MAÑANA!'}
               </span>
             </div>
@@ -101,19 +101,19 @@ export default function EventCard({ evento }: EventCardProps) {
         
         {/* Precio */}
         <div className="text-right flex-shrink-0">
-          <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-lg border shadow-sm ${
+          <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-md font-bold text-sm border ${
             (precio === 'Gratis' || !precio || precio.trim() === '') 
               ? 'bg-green-600 text-white border-green-600' 
               : 'bg-blue-100 text-blue-800 border-blue-200'
           }`}>
             {(precio === 'Gratis' || !precio || precio.trim() === '') ? (
               <>
-                <StarIcon className="h-5 w-5" />
+                <StarIcon className="h-3 w-3" />
                 <span>GRATIS</span>
               </>
             ) : (
               <>
-                <CurrencyEuroIcon className="h-5 w-5" />
+                <CurrencyEuroIcon className="h-3 w-3" />
                 <span>{precio}</span>
               </>
             )}
@@ -122,26 +122,26 @@ export default function EventCard({ evento }: EventCardProps) {
       </div>
 
       {/* Título */}
-      <h2 className="text-xl font-bold text-foreground mb-4 leading-tight">
+      <h2 className="text-base font-bold text-foreground mb-2 leading-tight">
         {evento.titulo}
       </h2>
 
       {/* Información principal */}
-      <div className="space-y-3 mb-4">
+      <div className="space-y-2 mb-2">
         {/* Fecha */}
-        <div className="flex items-start gap-3">
-          <div className="flex-shrink-0 p-2 bg-primary/10 rounded-lg">
-            <CalendarIcon className="h-6 w-6 text-primary" />
+        <div className="flex items-start gap-2">
+          <div className="flex-shrink-0 p-1 bg-primary/10 rounded-md">
+            <CalendarIcon className="h-4 w-4 text-primary" />
           </div>
           <div className="flex-1">
-            <div className={`inline-flex items-center px-3 py-1 rounded-lg text-base font-bold border ${dateStyles[dateUrgency]} mb-2`}>
+            <div className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold border ${dateStyles[dateUrgency]} mb-1`}>
               {fechaRelativa}
             </div>
-            <div className="text-lg font-bold text-foreground">
+            <div className="text-sm font-bold text-foreground">
               {fechaCompleta}
             </div>
             {evento.fecha_fin && evento.fecha_fin !== evento.fecha_inicio && (
-              <div className="text-base text-muted mt-1">
+              <div className="text-xs text-muted mt-0.5">
                 Hasta: {formatDateLong(evento.fecha_fin)}
               </div>
             )}
@@ -150,21 +150,21 @@ export default function EventCard({ evento }: EventCardProps) {
 
         {/* Ubicación */}
         {evento.ubicacion && (
-          <div className="flex items-start gap-3">
-            <div className="flex-shrink-0 p-2 bg-accent/20 rounded-lg">
-              <MapPinIcon className="h-6 w-6 text-accent-foreground" />
+          <div className="flex items-start gap-2">
+            <div className="flex-shrink-0 p-1 bg-accent/20 rounded-md">
+              <MapPinIcon className="h-4 w-4 text-accent-foreground" />
             </div>
-            <div className="flex-1 flex items-center justify-between gap-3">
-              <div className="text-base font-medium text-foreground">
+            <div className="flex-1 flex items-center justify-between gap-2">
+              <div className="text-sm font-medium text-foreground">
                 {evento.ubicacion}
               </div>
               <a
                 href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(evento.ubicacion)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="btn btn-primary btn-sm shrink-0"
+                className="btn btn-primary btn-xs shrink-0"
               >
-                <MapPinIcon className="h-4 w-4" />
+                <MapPinIcon className="h-3 w-3" />
                 Ver Mapa
               </a>
             </div>
@@ -174,11 +174,11 @@ export default function EventCard({ evento }: EventCardProps) {
 
       {/* Detalles extraídos */}
       {extractedDetails.length > 0 && (
-        <div className="mb-4 p-3 bg-secondary/30 rounded-lg border border-secondary">
-          <h4 className="text-base font-semibold text-foreground mb-2">📋 Información Adicional</h4>
-          <div className="space-y-1">
+        <div className="mb-2 p-2 bg-secondary/30 rounded-md border border-secondary">
+          <h4 className="text-sm font-semibold text-foreground mb-1.5">📋 Información Adicional</h4>
+          <div className="space-y-0.5">
             {extractedDetails.map((detail, index) => (
-              <div key={index} className="flex items-center gap-2 text-sm">
+              <div key={index} className="flex items-center gap-1.5 text-xs">
                 {detail.icon && <IconComponent iconName={detail.icon} />}
                 <span className="font-semibold text-foreground">{detail.label}:</span>
                 <span className="text-foreground">{detail.value}</span>
@@ -190,9 +190,9 @@ export default function EventCard({ evento }: EventCardProps) {
 
       {/* Descripción */}
       {evento.descripcion && (
-        <div className="mb-4 p-3 bg-muted/10 rounded-lg">
-          <h4 className="text-base font-semibold text-foreground mb-2">📝 Descripción</h4>
-          <div className="text-base text-foreground leading-relaxed">
+        <div className="p-2 bg-muted/10 rounded-md">
+          <h4 className="text-sm font-semibold text-foreground mb-1.5">📝 Descripción</h4>
+          <div className="text-sm text-foreground leading-relaxed">
             {evento.descripcion}
           </div>
         </div>

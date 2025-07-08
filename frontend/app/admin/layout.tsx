@@ -85,12 +85,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       href: '/admin/logs',
       icon: DocumentTextIcon,
       current: pathname === '/admin/logs'
-    },
-    {
-      name: 'Configuración',
-      href: '/admin/config',
-      icon: Cog6ToothIcon,
-      current: pathname === '/admin/config'
     }
   ];
 

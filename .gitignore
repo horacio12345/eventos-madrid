@@ -235,3 +235,5 @@ node_modules/
 
 # Temporary files
 backend/temp_uploads/
+
+backend/api/data/

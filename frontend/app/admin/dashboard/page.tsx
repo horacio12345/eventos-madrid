@@ -58,7 +58,7 @@ export default function DashboardPage() {
     <div className="container-wide">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Dashboard</h1>
+        <h1 className="text-xl font-bold text-gray-900 mb-2">Dashboard</h1>
         <p className="text-gray-600">
           Panel de control del sistema de eventos para mayores
         </p>
@@ -132,7 +132,7 @@ export default function DashboardPage() {
             <button
               onClick={handleTriggerProcessing}
               disabled={processingFiles}
-              className="w-full btn btn-primary justify-start"
+              className="w-full btn btn-primary btn-sm justify-start"
             >
               {processingFiles ? (
                 <LoadingSpinner size="sm" />
@@ -144,12 +144,12 @@ export default function DashboardPage() {
               </span>
             </button>
 
-            <Link href="/admin/fuentes" className="w-full btn btn-outline justify-start">
+            <Link href="/admin/fuentes" className="w-full btn btn-primary btn-sm justify-start">
               <GlobeAltIcon className="h-5 w-5" />
               <span className="ml-2">Gestionar Agentes</span>
             </Link>
 
-            <Link href="/admin/logs" className="w-full btn btn-outline justify-start">
+            <Link href="/admin/logs" className="w-full btn btn-primary btn-sm justify-start">
               <ChartBarIcon className="h-5 w-5" />
               <span className="ml-2">Ver Historial del Sistema</span>
             </Link>

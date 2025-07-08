@@ -1,4 +1,4 @@
-// app/page.tsx - VERSIÓN OPTIMIZADA PARA PERSONAS MAYORES
+// app/page.tsx
 
 'use client';
 
@@ -133,16 +133,13 @@ export default function HomePage() {
     <div className="min-h-screen bg-background">
       <header className="bg-card shadow-medium border-b-2 border-primary/10">
         <div className="container-wide">
-          <div className="py-6">
+          <div className="py-4">
             <div className="text-center">
-              <h1 className="text-5xl md:text-6xl font-bold text-foreground mb-4 tracking-tight">
+              <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-3 tracking-tight">
                 🗓️ Agenda Activa
               </h1>
-              <p className="text-xl md:text-2xl text-muted max-w-4xl mx-auto leading-relaxed font-medium">
-                Planes y actividades en tu ciudad, seleccionados especialmente para ti. 
-                <span className="block mt-2 text-primary font-semibold">
-                  Todo gratuito o muy económico
-                </span>
+              <p className="text-lg md:text-xl text-primary max-w-4xl mx-auto leading-relaxed font-medium">
+                Planes y actividades en tu ciudad, seleccionados especialmente para ti.
               </p>
             </div>
           </div>
@@ -152,32 +149,32 @@ export default function HomePage() {
       {/* Barra de búsqueda mejorada */}
       <section className="bg-card border-b-2 border-primary/10 shadow-soft">
         <div className="container-wide">
-          <div className="py-6">
+          <div className="py-4">
             <div className="max-w-4xl mx-auto">
-              <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-3">
                 {/* Búsqueda principal */}
                 <div className="relative">
-                  <MagnifyingGlassIcon className="absolute left-6 top-1/2 transform -translate-y-1/2 h-7 w-7 text-muted" />
+                  <MagnifyingGlassIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 h-6 w-6 text-muted" />
                   <input
                     type="text"
                     placeholder="¿Qué te apetece hacer? Busca eventos..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="input pl-16 pr-6 text-xl py-6 text-center border-2 border-primary/20 focus:border-primary shadow-md"
-                    style={{ minHeight: '80px' }}
+                    className="input pl-12 pr-4 text-lg py-4 text-center border-2 border-primary/20 focus:border-primary shadow-md"
+                    style={{ minHeight: '60px' }}
                   />
                 </div>
 
                 {/* Botones de acción */}
-                <div className="flex flex-col sm:flex-row gap-3">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <button
                     onClick={() => setShowFilters(!showFilters)}
-                    className={`btn ${showFilters ? 'btn-primary' : 'btn-secondary'} flex-1 justify-center text-xl`}
+                    className={`btn ${showFilters ? 'btn-primary' : 'btn-secondary'} flex-1 justify-center text-lg`}
                   >
-                    <AdjustmentsHorizontalIcon className="h-6 w-6 mr-3" />
+                    <AdjustmentsHorizontalIcon className="h-5 w-5 mr-2" />
                     Filtrar Búsqueda
                     {activeFiltersCount > 0 && (
-                      <span className="ml-2 bg-white text-primary rounded-full px-3 py-1 text-lg font-bold">
+                      <span className="ml-2 bg-white text-primary rounded-full px-2 py-1 text-sm font-bold">
                         {activeFiltersCount}
                       </span>
                     )}
@@ -186,9 +183,9 @@ export default function HomePage() {
                   {activeFiltersCount > 0 && (
                     <button
                       onClick={clearFilters}
-                      className="btn btn-outline flex-1 sm:flex-none justify-center text-xl"
+                      className="btn btn-outline flex-1 sm:flex-none justify-center text-lg"
                     >
-                      <XMarkIcon className="h-6 w-6 mr-2" />
+                      <XMarkIcon className="h-5 w-5 mr-2" />
                       Limpiar
                     </button>
                   )}
@@ -196,17 +193,17 @@ export default function HomePage() {
 
                 {/* Panel de filtros expandido */}
                 {showFilters && (
-                  <div className="bg-secondary/20 p-6 rounded-2xl border-2 border-secondary animate-slide-down">
-                    <h3 className="text-2xl font-bold text-foreground mb-6">🔍 Filtrar Eventos</h3>
+                  <div className="bg-secondary/20 p-4 rounded-xl border-2 border-secondary animate-slide-down">
+                    <h3 className="text-lg font-bold text-foreground mb-4">🔍 Filtrar Eventos</h3>
                     
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                       {/* Filtro por categoría */}
                       <div>
-                        <label className="label text-xl mb-4">Tipo de Actividad</label>
+                        <label className="label text-lg mb-3">Tipo de Actividad</label>
                         <select
                           value={filters.categoria || ''}
                           onChange={(e) => handleCategoryFilter(e.target.value as EventoCategoria || undefined)}
-                          className="select text-xl py-4"
+                          className="select text-lg py-3"
                         >
                           <option value="">🎭 Todas las actividades</option>
                           {getAllCategorias().map(categoria => {
@@ -223,14 +220,14 @@ export default function HomePage() {
 
                       {/* Filtro por precio */}
                       <div>
-                        <label className="label text-xl mb-4">Precio Máximo</label>
+                        <label className="label text-lg mb-3">Precio Máximo</label>
                         <select
                           value={filters.precio_max || ''}
                           onChange={(e) => setFilters(prev => ({ 
                             ...prev, 
                             precio_max: e.target.value ? parseInt(e.target.value) : undefined 
                           }))}
-                          className="select text-xl py-4"
+                          className="select text-lg py-3"
                         >
                           <option value="">💰 Cualquier precio</option>
                           <option value="0">⭐ Solo gratuitos</option>
@@ -243,8 +240,8 @@ export default function HomePage() {
 
                     {/* Resumen de filtros */}
                     {activeFiltersCount > 0 && (
-                      <div className="mt-6 p-4 bg-primary/10 rounded-xl border border-primary/20">
-                        <p className="text-lg font-semibold text-primary">
+                      <div className="mt-4 p-3 bg-primary/10 rounded-lg border border-primary/20">
+                        <p className="text-base font-semibold text-primary">
                           📋 Filtros activos: Mostrando {totalCount} eventos
                         </p>
                       </div>
@@ -258,23 +255,23 @@ export default function HomePage() {
       </section>
 
       {/* Contenido principal */}
-      <main className="container-wide py-8">
+      <main className="container-wide py-5">
 
         {/* Estados de carga y error */}
         {eventosLoading && (
-          <div className="text-center py-20">
+          <div className="text-center py-12">
             <LoadingSpinner size="lg" />
-            <p className="text-muted mt-6 text-2xl font-medium">Cargando eventos...</p>
+            <p className="text-muted mt-4 text-lg font-medium">Cargando eventos...</p>
           </div>
         )}
 
         {eventosError && (
-          <div className="text-center py-20">
-            <div className="bg-error-bg border-2 border-error rounded-2xl p-8 max-w-2xl mx-auto">
-              <h3 className="text-2xl font-bold text-error mb-4">
+          <div className="text-center py-12">
+            <div className="bg-error-bg border-2 border-error rounded-xl p-5 max-w-2xl mx-auto">
+              <h3 className="text-lg font-bold text-error mb-3">
                 ❌ Error al cargar eventos
               </h3>
-              <p className="text-error text-lg mb-6">{eventosError}</p>
+              <p className="text-error text-base mb-4">{eventosError}</p>
               <button
                 onClick={refetch}
                 className="btn btn-primary btn-lg"
@@ -290,14 +287,14 @@ export default function HomePage() {
           <>
             {/* No hay eventos */}
             {totalCount === 0 && (
-              <div className="text-center py-20">
-                <div className="bg-muted/10 rounded-full w-32 h-32 mx-auto mb-8 flex items-center justify-center">
-                  <CalendarIcon className="h-16 w-16 text-muted" />
+              <div className="text-center py-12">
+                <div className="bg-muted/10 rounded-full w-24 h-24 mx-auto mb-5 flex items-center justify-center">
+                  <CalendarIcon className="h-12 w-12 text-muted" />
                 </div>
-                <h3 className="text-3xl font-bold text-foreground mb-4">
+                <h3 className="text-xl font-bold text-foreground mb-3">
                   😔 No hay eventos disponibles
                 </h3>
-                <p className="text-xl text-muted mb-8 max-w-2xl mx-auto">
+                <p className="text-lg text-muted mb-5 max-w-2xl mx-auto">
                   {activeFiltersCount > 0
                     ? 'No encontramos eventos con esos filtros. Prueba a ampliar tu búsqueda.'
                     : 'En este momento no hay eventos programados. ¡Vuelve pronto!'
@@ -316,10 +313,10 @@ export default function HomePage() {
 
             {/* Contador de resultados */}
             {totalCount > 0 && (
-              <div className="mb-8 text-center">
-                <div className="inline-flex items-center gap-3 bg-primary/10 px-6 py-3 rounded-xl border border-primary/20">
-                  <span className="text-2xl">📊</span>
-                  <span className="text-xl font-bold text-primary">
+              <div className="mb-5 text-center">
+                <div className="inline-flex items-center gap-2 bg-primary/10 px-4 py-2 rounded-lg border border-primary/20">
+                  <span className="text-lg">📊</span>
+                  <span className="text-lg font-bold text-primary">
                     {totalCount} evento{totalCount !== 1 ? 's' : ''} encontrado{totalCount !== 1 ? 's' : ''}
                   </span>
                 </div>
@@ -328,21 +325,21 @@ export default function HomePage() {
 
             {/* Eventos de Hoy */}
             {groupedEventos.today.length > 0 && (
-              <section className="mb-12">
-                <div className="flex items-center gap-4 mb-8">
-                  <div className="bg-red-100 p-3 rounded-xl">
-                    <span className="text-3xl">🔥</span>
+              <section className="mb-8">
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="bg-red-100 p-2 rounded-lg">
+                    <span className="text-xl">🔥</span>
                   </div>
                   <div>
-                    <h2 className="text-4xl font-bold text-foreground">
+                    <h2 className="text-2xl font-bold text-foreground">
                       ¡Hoy Mismo!
                     </h2>
-                    <p className="text-xl text-muted">
+                    <p className="text-lg text-muted">
                       {groupedEventos.today.length} evento{groupedEventos.today.length !== 1 ? 's' : ''} para hoy
                     </p>
                   </div>
                 </div>
-                <div className="space-y-6">
+                <div className="space-y-4">
                   {groupedEventos.today.map((evento, index) => (
                     <div key={`today-${evento.id}-${index}`} className="animate-fade-in" style={{ animationDelay: `${index * 100}ms` }}>
                       <EventCard evento={evento} />
@@ -354,21 +351,21 @@ export default function HomePage() {
 
             {/* Eventos de Mañana */}
             {groupedEventos.tomorrow.length > 0 && (
-              <section className="mb-12">
-                <div className="flex items-center gap-4 mb-8">
-                  <div className="bg-orange-100 p-3 rounded-xl">
-                    <span className="text-3xl">⏰</span>
+              <section className="mb-8">
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="bg-orange-100 p-2 rounded-lg">
+                    <span className="text-xl">⏰</span>
                   </div>
                   <div>
-                    <h2 className="text-4xl font-bold text-foreground">
+                    <h2 className="text-2xl font-bold text-foreground">
                       Mañana
                     </h2>
-                    <p className="text-xl text-muted">
+                    <p className="text-lg text-muted">
                       {groupedEventos.tomorrow.length} evento{groupedEventos.tomorrow.length !== 1 ? 's' : ''} para mañana
                     </p>
                   </div>
                 </div>
-                <div className="space-y-6">
+                <div className="space-y-4">
                   {groupedEventos.tomorrow.map((evento, index) => (
                     <div key={`tomorrow-${evento.id}-${index}`} className="animate-fade-in" style={{ animationDelay: `${index * 100}ms` }}>
                       <EventCard evento={evento} />
@@ -380,21 +377,21 @@ export default function HomePage() {
 
             {/* Eventos Esta Semana */}
             {groupedEventos.thisWeek.length > 0 && (
-              <section className="mb-12">
-                <div className="flex items-center gap-4 mb-8">
-                  <div className="bg-yellow-100 p-3 rounded-xl">
-                    <span className="text-3xl">📅</span>
+              <section className="mb-8">
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="bg-yellow-100 p-2 rounded-lg">
+                    <span className="text-xl">📅</span>
                   </div>
                   <div>
-                    <h2 className="text-4xl font-bold text-foreground">
+                    <h2 className="text-2xl font-bold text-foreground">
                       Esta Semana
                     </h2>
-                    <p className="text-xl text-muted">
+                    <p className="text-lg text-muted">
                       {groupedEventos.thisWeek.length} evento{groupedEventos.thisWeek.length !== 1 ? 's' : ''} esta semana
                     </p>
                   </div>
                 </div>
-                <div className="space-y-6">
+                <div className="space-y-4">
                   {groupedEventos.thisWeek.map((evento, index) => (
                     <div key={`week-${evento.id}-${index}`} className="animate-fade-in" style={{ animationDelay: `${index * 100}ms` }}>
                       <EventCard evento={evento} />
@@ -406,21 +403,21 @@ export default function HomePage() {
 
             {/* Próximos Eventos */}
             {groupedEventos.upcoming.length > 0 && (
-              <section className="mb-12">
-                <div className="flex items-center gap-4 mb-8">
-                  <div className="bg-blue-100 p-3 rounded-xl">
-                    <span className="text-3xl">🔮</span>
+              <section className="mb-8">
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="bg-blue-100 p-2 rounded-lg">
+                    <span className="text-xl">🔮</span>
                   </div>
                   <div>
-                    <h2 className="text-4xl font-bold text-foreground">
+                    <h2 className="text-2xl font-bold text-foreground">
                       Próximamente
                     </h2>
-                    <p className="text-xl text-muted">
+                    <p className="text-lg text-muted">
                       {groupedEventos.upcoming.length} evento{groupedEventos.upcoming.length !== 1 ? 's' : ''} próximo{groupedEventos.upcoming.length !== 1 ? 's' : ''}
                     </p>
                   </div>
                 </div>
-                <div className="space-y-6">
+                <div className="space-y-4">
                   {groupedEventos.upcoming.map((evento, index) => (
                     <div key={`upcoming-${evento.id}-${index}`} className="animate-fade-in" style={{ animationDelay: `${index * 100}ms` }}>
                       <EventCard evento={evento} />
@@ -434,34 +431,34 @@ export default function HomePage() {
 
         {/* Información adicional mejorada */}
         {!eventosLoading && totalCount > 0 && (
-          <div className="mt-16 bg-accent/20 border-2 border-accent rounded-2xl p-8">
-            <div className="flex items-start gap-4 mb-6">
-              <span className="text-4xl">ℹ️</span>
+          <div className="mt-10 bg-accent/20 border-2 border-accent rounded-xl p-5">
+            <div className="flex items-start gap-3 mb-4">
+              <span className="text-2xl">ℹ️</span>
               <div>
-                <h3 className="text-2xl font-bold text-accent-foreground mb-2">
+                <h3 className="text-lg font-bold text-accent-foreground mb-2">
                   Información Importante
                 </h3>
-                <p className="text-lg text-accent-foreground/80">
+                <p className="text-base text-accent-foreground/80">
                   Todo lo que necesitas saber sobre estos eventos
                 </p>
               </div>
             </div>
-            <ul className="text-lg text-accent-foreground space-y-3 leading-relaxed">
-              <li className="flex items-start gap-3">
-                <span className="text-xl">💰</span>
+            <ul className="text-base text-accent-foreground space-y-2 leading-relaxed">
+              <li className="flex items-start gap-2">
+                <span className="text-lg">💰</span>
                 <span>Todos los eventos son gratuitos o de bajo coste (máximo 15€)</span>
               </li>
 
-              <li className="flex items-start gap-3">
-                <span className="text-xl">✅</span>
+              <li className="flex items-start gap-2">
+                <span className="text-lg">✅</span>
                 <span>Recomendamos confirmar horarios y disponibilidad antes de asistir</span>
               </li>
-              <li className="flex items-start gap-3">
-                <span className="text-xl">📞</span>
+              <li className="flex items-start gap-2">
+                <span className="text-lg">📞</span>
                 <span>Para más información, contacta directamente con el organizador</span>
               </li>
-              <li className="flex items-start gap-3">
-                <span className="text-xl">📊</span>
+              <li className="flex items-start gap-2">
+                <span className="text-lg">📊</span>
                 <span>Mostrando {totalCount} evento{totalCount !== 1 ? 's' : ''} {activeFiltersCount > 0 ? 'filtrados' : ''}</span>
               </li>
             </ul>
@@ -470,19 +467,16 @@ export default function HomePage() {
       </main>
 
       {/* Footer mejorado */}
-      <footer className="bg-foreground text-background mt-20">
-        <div className="container-wide py-12">
+      <footer className="bg-foreground text-background mt-12">
+        <div className="container-wide py-8">
           <div className="text-center">
-            <h3 className="text-3xl font-bold mb-4">
+            <h3 className="text-xl font-bold mb-3">
               🎭 Agenda Activa
             </h3>
-            <p className="text-xl mb-8 max-w-2xl mx-auto leading-relaxed">
-              Conectando a nuestros mayores con la cultura y el ocio de la ciudad.
-              <span className="block mt-2 font-semibold">
-                ¡Porque la vida activa no tiene edad!
-              </span>
+            <p className="text-lg mb-5 max-w-2xl mx-auto leading-relaxed">
+              ¡Planes y actividades para disfrutar!
             </p>
-            <div className="flex flex-col sm:flex-row justify-center items-center gap-6 text-lg">
+            <div className="flex flex-col sm:flex-row justify-center items-center gap-4 text-base">
               <a href="/admin" className="link text-background hover:text-primary-200 font-semibold">
                 🔧 Panel de Administración
               </a>
