@@ -435,18 +435,15 @@ export default function HomePage() {
             <div className="flex items-start gap-3 mb-4">
               <span className="text-2xl">ℹ️</span>
               <div>
-                <h3 className="text-lg font-bold text-accent-foreground mb-2">
+                <h4 className="text-lg font-bold text-accent-foreground mb-2">
                   Información Importante
-                </h3>
-                <p className="text-base text-accent-foreground/80">
-                  Todo lo que necesitas saber sobre estos eventos
-                </p>
+                </h4>
               </div>
             </div>
             <ul className="text-base text-accent-foreground space-y-2 leading-relaxed">
               <li className="flex items-start gap-2">
-                <span className="text-lg">💰</span>
-                <span>Todos los eventos son gratuitos o de bajo coste (máximo 15€)</span>
+                <span className="text-lg">🌟</span>
+                <span>Eventos seleccionados especialmente para ti</span>
               </li>
 
               <li className="flex items-start gap-2">
@@ -458,8 +455,8 @@ export default function HomePage() {
                 <span>Para más información, contacta directamente con el organizador</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-lg">📊</span>
-                <span>Mostrando {totalCount} evento{totalCount !== 1 ? 's' : ''} {activeFiltersCount > 0 ? 'filtrados' : ''}</span>
+                <span className="text-lg">🔄</span>
+                <span>Actualizaciones periódicas con nuevos eventos</span>
               </li>
             </ul>
           </div>
@@ -482,7 +479,7 @@ export default function HomePage() {
               </a>
               <span className="hidden sm:block text-background/60">|</span>
               <span className="text-background/80 font-medium">
-                📅 Actualizado semanalmente
+                📅 Actualizada periódicamente
               </span>
             </div>
           </div>

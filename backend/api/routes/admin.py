@@ -1,7 +1,7 @@
 # api/routes/admin.py
 
 """
-Endpoints simplificados para fuentes específicas
+Endpoints simplificados para agentes - SIN SCRAPING LEGACY
 """
 import sys
 import os
@@ -11,7 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from datetime import datetime
 from core import get_db
-from core.models import FuenteWeb, Evento, LogScraping
+from core.models import FuenteWeb, Evento
 from agents.ssreyes_agent import SSReyesAgent
 from fastapi import UploadFile, File, Form
 import shutil
@@ -70,11 +70,11 @@ async def get_ssreyes_config():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# ============= FUENTES CRUD =============
+# ============= AGENTES CRUD =============
 
 @router.get("/fuentes")
 def get_fuentes(db: Session = Depends(get_db)):
-    """Obtener todas las fuentes configuradas"""
+    """Obtener todos los agentes configurados"""
     fuentes = db.query(FuenteWeb).all()
     return [
         {
@@ -93,21 +93,21 @@ def get_fuentes(db: Session = Depends(get_db)):
 
 @router.post("/fuentes")
 def create_fuente(request: dict, db: Session = Depends(get_db)):
-    """Crear nueva fuente"""
+    """Crear nuevo agente"""
     try:
         fuente = FuenteWeb(
             nombre=request["nombre"],
-            url=request["url"],
-            tipo=request["tipo"],
+            url=request.get("url", "manual-upload"),
+            tipo=request.get("tipo", "AGENTE"),
             activa=request.get("activa", False),
-            frecuencia_actualizacion=request.get("frecuencia_actualizacion", "0 9 * * 1"),
+            frecuencia_actualizacion=request.get("frecuencia_actualizacion", "manual"),
             ultimo_estado="pending"
         )
         db.add(fuente)
         db.commit()
         db.refresh(fuente)
         
-        return {"id": fuente.id, "message": "Fuente creada exitosamente"}
+        return {"id": fuente.id, "message": "Agente creado exitosamente"}
         
     except Exception as e:
         db.rollback()
@@ -220,8 +220,6 @@ async def delete_uploaded_file(filename: str):
             detail=f"Error al eliminar el archivo: {str(e)}"
         )
 
-
-
 @router.delete("/fuentes/{fuente_id}")
 def delete_fuente(fuente_id: int, db: Session = Depends(get_db)):
     """Eliminar una fuente por ID CON CASCADA"""
@@ -272,7 +270,6 @@ def delete_fuente(fuente_id: int, db: Session = Depends(get_db)):
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
-
 
 # ============= SSREYES CLEANUP & STATS =============
 
@@ -358,43 +355,6 @@ def get_system_stats(db: Session = Depends(get_db)):
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-
-# ============= LOGS =============
-
-@router.get("/logs")
-def get_logs(fuente_id: int = None, limit: int = 100, db: Session = Depends(get_db)):
-    """Obtener los logs de scraping, con filtro opcional por fuente."""
-    try:
-        query = db.query(LogScraping).order_by(LogScraping.fecha_inicio.desc())
-        
-        if fuente_id:
-            query = query.filter(LogScraping.fuente_id == fuente_id)
-            
-        logs = query.limit(limit).all()
-        
-        # Convertir a diccionarios para serialización
-        logs_data = []
-        for log in logs:
-            logs_data.append({
-                "id": log.id,
-                "fuente_id": log.fuente_id,
-                "fuente_nombre": log.fuente_nombre,
-                "fecha_inicio": log.fecha_inicio.isoformat() if log.fecha_inicio else None,
-                "fecha_fin": log.fecha_fin.isoformat() if log.fecha_fin else None,
-                "estado": log.estado,
-                "eventos_extraidos": log.eventos_extraidos,
-                "eventos_nuevos": log.eventos_nuevos,
-                "eventos_actualizados": log.eventos_actualizados,
-                "mensaje": log.mensaje,
-                "detalles_error": log.detalles_error,
-                "tiempo_ejecucion_segundos": log.tiempo_ejecucion_segundos
-            })
-        
-        return logs_data
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error obteniendo logs: {str(e)}")
 
 # ============= FIX HASHES =============
 

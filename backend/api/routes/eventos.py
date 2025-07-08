@@ -1,13 +1,13 @@
 # api/routes/eventos.py
 
 """
-Endpoints públicos para eventos
+Endpoints públicos para eventos - CON DEDUPLICACIÓN EN BACKEND
 """
 from datetime import datetime
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import and_, func
+from sqlalchemy import and_, func, distinct
 from sqlalchemy.orm import Session
 
 import sys
@@ -27,10 +27,23 @@ def get_eventos(
     db: Session = Depends(get_db),
 ):
     """
-    Obtener lista de eventos activos ordenados por fecha
+    Obtener lista de eventos activos ordenados por fecha - CON DEDUPLICACIÓN
     """
+    # Subquery para deduplicar por título + fecha_inicio (tomar el primer ID de cada grupo)
+    subquery = (
+        db.query(
+            func.min(Evento.id).label("id")
+        )
+        .filter(
+            and_(Evento.activo == True, Evento.fecha_inicio >= datetime.now().date())
+        )
+        .group_by(Evento.titulo, Evento.fecha_inicio)
+        .subquery()
+    )
+    
+    # Query principal usando los IDs únicos
     query = db.query(Evento).filter(
-        and_(Evento.activo == True, Evento.fecha_inicio >= datetime.now().date())
+        Evento.id.in_(db.query(subquery.c.id))
     )
 
     if categoria:
@@ -92,13 +105,24 @@ def get_evento_detail(evento_id: int, db: Session = Depends(get_db)):
 @router.get("/categorias")
 def get_categorias(db: Session = Depends(get_db)):
     """
-    Obtener lista de categorías disponibles con conteo de eventos
+    Obtener lista de categorías disponibles con conteo de eventos - CON DEDUPLICACIÓN
     """
-    result = (
-        db.query(Evento.categoria, func.count(Evento.id).label("total"))
+    # Subquery para obtener eventos únicos (misma lógica que /eventos)
+    subquery = (
+        db.query(
+            func.min(Evento.id).label("id")
+        )
         .filter(
             and_(Evento.activo == True, Evento.fecha_inicio >= datetime.now().date())
         )
+        .group_by(Evento.titulo, Evento.fecha_inicio)
+        .subquery()
+    )
+    
+    # Contar categorías usando solo eventos únicos
+    result = (
+        db.query(Evento.categoria, func.count(Evento.id).label("total"))
+        .filter(Evento.id.in_(db.query(subquery.c.id)))
         .group_by(Evento.categoria)
         .all()
     )

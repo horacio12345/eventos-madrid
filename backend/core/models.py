@@ -1,7 +1,7 @@
 # backend/core/models.py
 
 """
-Modelos SQLAlchemy para el proyecto
+Modelos SQLAlchemy para el proyecto - VERSIÓN LIMPIA
 """
 from datetime import datetime
 from typing import Optional
@@ -49,7 +49,7 @@ class Evento(Base):
 
 class FuenteWeb(Base):
     """
-    Modelo para fuentes web configuradas - Sistema dinámico de extracción
+    Modelo para agentes de procesamiento - Sistema dinámico de extracción
     """
 
     __tablename__ = "fuentes_web"
@@ -57,17 +57,15 @@ class FuenteWeb(Base):
     id = Column(Integer, primary_key=True, index=True)
     nombre = Column(String(100), nullable=False, unique=True)
     url = Column(String(500), nullable=False)
-    tipo = Column(String(20), nullable=False)  # HTML, PDF, API
+    tipo = Column(String(20), nullable=False)  # AGENTE, PDF, etc.
 
     # ============= CONFIGURACIÓN DE EXTRACCIÓN =============
     schema_extraccion = Column(JSON)  # Define QUÉ campos extraer y CÓMO
     mapeo_campos = Column(JSON)  # Mapeo de campos extraídos -> modelo base
-    configuracion_scraping = Column(
-        JSON
-    )  # Config específica (selectors, headers, etc.)
+    configuracion_scraping = Column(JSON)  # Config específica (obsoleto)
 
     # ============= CONFIGURACIÓN DE EJECUCIÓN =============
-    frecuencia_actualizacion = Column(String(50), default="0 9 * * 1")  # cron
+    frecuencia_actualizacion = Column(String(50), default="0 9 * * 1")  # cron (obsoleto)
     activa = Column(Boolean, default=True, index=True)
 
     # ============= METADATOS DE EJECUCIÓN =============
@@ -83,30 +81,6 @@ class FuenteWeb(Base):
 
     def __repr__(self) -> str:
         return f"<FuenteWeb(id={self.id}, nombre='{self.nombre}', tipo='{self.tipo}')>"
-
-
-class LogScraping(Base):
-    """
-    Modelo para logs de scraping
-    """
-
-    __tablename__ = "logs_scraping"
-
-    id = Column(Integer, primary_key=True, index=True)
-    fuente_id = Column(Integer, nullable=False, index=True)
-    fuente_nombre = Column(String(100), nullable=False)
-    fecha_inicio = Column(DateTime, default=func.now(), index=True)
-    fecha_fin = Column(DateTime)
-    estado = Column(String(20), nullable=False, index=True)  # success, error, running
-    eventos_extraidos = Column(Integer, default=0)
-    eventos_nuevos = Column(Integer, default=0)
-    eventos_actualizados = Column(Integer, default=0)
-    mensaje = Column(Text)
-    detalles_error = Column(Text)
-    tiempo_ejecucion_segundos = Column(Integer)
-
-    def __repr__(self) -> str:
-        return f"<LogScraping(id={self.id}, fuente='{self.fuente_nombre}', estado='{self.estado}')>"
 
 
 class Configuracion(Base):

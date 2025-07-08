@@ -9,7 +9,6 @@ import {
   HomeIcon,
   Cog6ToothIcon,
   GlobeAltIcon,
-  DocumentTextIcon,
   ArrowRightOnRectangleIcon,
   Bars3Icon,
   XMarkIcon,
@@ -66,7 +65,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     router.push('/admin/login');
   };
 
-  // Navegación del sidebar
+  // Navegación del sidebar - SIN LOGS
   const navigation = [
     {
       name: 'Dashboard',
@@ -75,16 +74,10 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       current: pathname === '/admin/dashboard'
     },
     {
-      name: 'Gestión de Fuentes',
+      name: 'Gestión de Agentes',
       href: '/admin/fuentes',
       icon: GlobeAltIcon,
       current: pathname.startsWith('/admin/fuentes')
-    },
-    {
-      name: 'Logs del Sistema',
-      href: '/admin/logs',
-      icon: DocumentTextIcon,
-      current: pathname === '/admin/logs'
     }
   ];
 

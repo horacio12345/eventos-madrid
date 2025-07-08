@@ -39,7 +39,7 @@ export default function DashboardPage() {
     
     try {
       // Por ahora redirigir a gestión de fuentes
-      setUpdateMessage('Ir a "Gestión de Fuentes" para procesar archivos');
+      setUpdateMessage('Ir a "Gestión de Agentes" para procesar archivos');
       
       // Refrescar datos después de 2 segundos
       setTimeout(() => {
@@ -129,29 +129,9 @@ export default function DashboardPage() {
         <div className="bg-white rounded-lg shadow-card p-6 border border-gray-100">
           <h3 className="text-lg font-medium text-gray-900 mb-4">Acciones Rápidas</h3>
           <div className="space-y-3">
-            <button
-              onClick={handleTriggerProcessing}
-              disabled={processingFiles}
-              className="w-full btn btn-primary btn-sm justify-start"
-            >
-              {processingFiles ? (
-                <LoadingSpinner size="sm" />
-              ) : (
-                <DocumentArrowUpIcon className="h-5 w-5" />
-              )}
-              <span className="ml-2">
-                {processingFiles ? 'Procesando archivos...' : 'Procesar Archivos'}
-              </span>
-            </button>
-
             <Link href="/admin/fuentes" className="w-full btn btn-primary btn-sm justify-start">
               <GlobeAltIcon className="h-5 w-5" />
               <span className="ml-2">Gestionar Agentes</span>
-            </Link>
-
-            <Link href="/admin/logs" className="w-full btn btn-primary btn-sm justify-start">
-              <ChartBarIcon className="h-5 w-5" />
-              <span className="ml-2">Ver Historial del Sistema</span>
             </Link>
           </div>
         </div>

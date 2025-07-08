@@ -8,7 +8,6 @@ import sys
 import yaml
 from datetime import datetime, date
 from typing import Dict, List
-
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 from langchain_anthropic import ChatAnthropic
@@ -22,6 +21,7 @@ from sqlalchemy import and_
 from core import get_settings
 from core.database import SessionLocal
 from core.models import Evento, FuenteWeb
+
 
 # IMPORTAR EL NORMALIZADOR
 from services.event_normalizer import EventNormalizer
@@ -102,7 +102,7 @@ class SSReyesAgent:
     async def extract_events_from_pdf(self, pdf_url: str) -> Dict:
         """
         Extract events from SSReyes PDF using specific instructions
-        VERSIÓN MEJORADA - Con detección de duplicados
+        VERSIÓN MEJORADA - Con detección de duplicados + DEBUG LOGGING
         """
         try:
             print(f"🔍 [SSReyes] Starting extraction from: {pdf_url}")
@@ -114,22 +114,32 @@ class SSReyesAgent:
             else:
                 pdf_absolute_path = pdf_url
 
+            print(f"🟦 [DEBUG] ANTES de Docling - NO hay mensajes extraños todavía")
+            
             # Step 2: Extract PDF content
             converter = DocumentConverter()
             result = converter.convert(pdf_absolute_path)
             texto = result.document.export_to_markdown()
             
-            print(f"📄 [SSReyes] PDF content extracted, length: {len(texto)}")
+            print(f"🟦 [DEBUG] DESPUÉS de Docling - length: {len(texto)}")
+            print(f"🟦 [DEBUG] ¿Aparece aquí el mensaje 'Decision: ERROR'? - Revisar arriba ⬆️")
+            
+            print(f"🟨 [DEBUG] ANTES de LangChain LLM - Iniciando procesamiento...")
             
             # Step 2: Extract events using LLM with SSReyes specific prompt
             chain = self.extraction_prompt | self.llm | self.json_parser
-            
             response = await chain.ainvoke({"texto": texto})
+            
+            print(f"🟨 [DEBUG] DESPUÉS de LangChain LLM - Procesamiento completado")
+            print(f"🟨 [DEBUG] ¿Aparece aquí el mensaje 'Decision: ERROR'? - Revisar arriba ⬆️")
             
             # Step 3: Process and validate response
             if isinstance(response, dict) and "eventos" in response:
                 eventos_raw = response["eventos"]
                 print(f"🔍 [DEBUG] Raw eventos from LLM: {eventos_raw[0] if eventos_raw else 'None'}")
+                
+                print(f"🟩 [DEBUG] ANTES de Normalización - Iniciando normalización...")
+                
                 # Step 4: NORMALIZAR EVENTOS (incluye detección de duplicados)
                 mapeo_campos = {
                     "titulo": "titulo",
@@ -141,10 +151,18 @@ class SSReyesAgent:
                 }
                 
                 eventos_normalizados = self.normalizer.batch_normalize(eventos_raw, mapeo_campos)
+                
+                print(f"🟩 [DEBUG] DESPUÉS de Normalización - Completado")
+                print(f"🟩 [DEBUG] ¿Aparece aquí el mensaje 'Decision: ERROR'? - Revisar arriba ⬆️")
                 print(f"🔍 [DEBUG] Normalized event: {eventos_normalizados[0] if eventos_normalizados else 'None'}")
+                
+                print(f"🟪 [DEBUG] ANTES de Guardar en DB - Iniciando guardado...")
                 
                 # Step 5: Save events to database WITH DEDUPLICATION
                 save_result = self.save_eventos_to_db_deduped(eventos_normalizados, pdf_url)
+                
+                print(f"🟪 [DEBUG] DESPUÉS de Guardar en DB - Completado")
+                print(f"🟪 [DEBUG] ¿Aparece aquí el mensaje 'Decision: ERROR'? - Revisar arriba ⬆️")
                 print(f"💾 [SSReyes] Saved {save_result['guardados']} events (skipped {save_result['duplicados']} duplicates)")
                 
                 # Add metadata to each event
@@ -158,6 +176,8 @@ class SSReyesAgent:
                         ubicacion = evento.get("ubicacion", "Centro Municipal de Personas Mayores Gloria Fuertes San Sebastián de los Reyes")
                         ubicacion_encoded = ubicacion.replace(" ", "+")
                         evento["enlace_ubicacion"] = f"https://www.google.com/maps/search/{ubicacion_encoded}"
+                
+                print(f"✅ [DEBUG] PROCESO COMPLETADO - ¿Viste el mensaje 'Decision: ERROR' en algún punto?")
                 
                 return {
                     "estado": "success",
