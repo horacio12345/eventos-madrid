@@ -14,7 +14,7 @@ services:
       - DATABASE_URL=sqlite:///./data/database.db
     volumes:
       - ./data:/app/data
-      - ./logs:/app/logs
+      - ./backend/api/data/uploads:/app/backend/api/data/uploads
     restart: unless-stopped
     networks:
       - proxy
@@ -23,6 +23,7 @@ services:
       - "traefik.http.routers.seniors-api.rule=Host(`seniors.horacioai.com`) && PathPrefix(`/api`)"
       - "traefik.http.routers.seniors-api.entrypoints=websecure"
       - "traefik.http.routers.seniors-api.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.seniors-api.priority=100"
       - "traefik.http.services.seniors-api.loadbalancer.server.port=8000"
 
   # ============= FRONTEND NEXT.JS =============
@@ -44,6 +45,7 @@ services:
       - "traefik.http.routers.seniors.rule=Host(`seniors.horacioai.com`)"
       - "traefik.http.routers.seniors.entrypoints=websecure"
       - "traefik.http.routers.seniors.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.seniors.priority=50"
       - "traefik.http.services.seniors.loadbalancer.server.port=3000"
 
 # ============= REDES =============
