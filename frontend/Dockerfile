@@ -20,7 +20,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Variables de entorno para la build
-ENV NEXT_PUBLIC_API_URL=http://localhost:8000/api
+ENV NEXT_PUBLIC_API_URL=https://seniors.horacioai.com/api
 ENV NODE_ENV=production
 
 # Generar la aplicación

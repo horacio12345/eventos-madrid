@@ -1,9 +1,5 @@
 # docker-compose.yml
 
-# =============================================================================
-# PROYECTO EVENTOS MAYORES - Docker Compose Simplificado para Hetzner
-# =============================================================================
-
 version: '3.8'
 
 services:
@@ -12,9 +8,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: eventos_backend
-    ports:
-      - "8000:8000"
+    container_name: seniors_backend
     environment:
       - ENVIRONMENT=production
       - DATABASE_URL=sqlite:///./data/database.db
@@ -23,68 +17,36 @@ services:
       - ./logs:/app/logs
     restart: unless-stopped
     networks:
-      - eventos_network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.seniors-api.rule=Host(`seniors.horacioai.com`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.seniors-api.entrypoints=websecure"
+      - "traefik.http.routers.seniors-api.tls.certresolver=letsencrypt"
+      - "traefik.http.services.seniors-api.loadbalancer.server.port=8000"
 
   # ============= FRONTEND NEXT.JS =============
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: eventos_frontend
-    ports:
-      - "3000:3000"
+    container_name: seniors_frontend
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:8000/api
+      - NEXT_PUBLIC_API_URL=https://seniors.horacioai.com/api
       - NODE_ENV=production
     depends_on:
       - backend
     restart: unless-stopped
     networks:
-      - eventos_network
-
-  # ============= NGINX (Reverse Proxy) =============
-  nginx:
-    image: nginx:alpine
-    container_name: eventos_nginx
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/ssl:/etc/nginx/ssl:ro
-    depends_on:
-      - backend
-      - frontend
-    restart: unless-stopped
-    networks:
-      - eventos_network
-
-# ============= VOLÚMENES =============
-volumes:
-  eventos_data:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.seniors.rule=Host(`seniors.horacioai.com`)"
+      - "traefik.http.routers.seniors.entrypoints=websecure"
+      - "traefik.http.routers.seniors.tls.certresolver=letsencrypt"
+      - "traefik.http.services.seniors.loadbalancer.server.port=3000"
 
 # ============= REDES =============
 networks:
-  eventos_network:
-    driver: bridge
-
-# =============================================================================
-# COMANDOS ÚTILES:
-#
-# Producción:
-# docker-compose up -d
-#
-# Ver logs:
-# docker-compose logs -f backend
-#
-# Rebuild:
-# docker-compose build --no-cache
-#
-# Cleanup:
-# docker-compose down -v
-# =============================================================================
+  proxy:
+    external: true
