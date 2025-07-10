@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     # ============= APP =============
     app_name: str = "Eventos Mayores Madrid"
     debug: bool = False
+    environment: str = "production"
 
     # ============= BASE DE DATOS =============
     database_url: str = "sqlite:///./data/database.db"
