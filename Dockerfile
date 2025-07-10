@@ -21,8 +21,7 @@ COPY requirements.txt .
 
 # ✅ MODIFICADO: Instalar dependencias Python optimizadas
 RUN pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir -r requirements.txt \
-    && pip cache purge
+    && pip install --no-cache-dir -r requirements.txt
 
 # Copiar código (igual que antes)
 COPY . .
