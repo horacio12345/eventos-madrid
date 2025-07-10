@@ -6,6 +6,7 @@ Agente específico para San Sebastián de los Reyes - Versión mejorada sin dupl
 import os
 import sys
 import yaml
+import gc  # ✅ LÍNEA AÑADIDA 1/3
 from datetime import datetime, date
 from typing import Dict, List
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
@@ -185,6 +186,15 @@ class SSReyesAgent:
                 "eventos": [],
                 "pdf_url": pdf_url
             }
+        finally:
+            # ✅ LÍNEA AÑADIDA 2/3 - Cleanup automático después de cada PDF
+            try:
+                if hasattr(self, 'llm'):
+                    del self.llm
+                gc.collect()
+                print(f"🧹 [SSReyes] Memory cleaned after extraction")
+            except:
+                pass
 
     def save_eventos_to_db_deduped(self, eventos: List[Dict], pdf_url: str) -> Dict:
         """
@@ -316,3 +326,12 @@ class SSReyesAgent:
             raise e
         finally:
             db.close()
+
+    def __del__(self):
+        """✅ LÍNEA AÑADIDA 3/3 - Cleanup al destruir objeto"""
+        try:
+            if hasattr(self, 'llm'):
+                del self.llm
+            gc.collect()
+        except:
+            pass

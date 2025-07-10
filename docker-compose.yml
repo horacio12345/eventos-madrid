@@ -18,6 +18,22 @@ services:
     restart: unless-stopped
     networks:
       - proxy
+    # ✅ AÑADIDO: Límites de memoria y recursos
+    deploy:
+      resources:
+        limits:
+          memory: 800M          # Máximo 800MB (mata el contenedor si excede)
+          cpus: '1.0'           # Máximo 1 CPU
+        reservations:
+          memory: 200M          # Memoria reservada mínima
+          cpus: '0.5'           # CPU reservada mínima
+    # ✅ AÑADIDO: Health check para restart automático
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/api/health || exit 1"]
+      interval: 60s             # Cada 60 segundos
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.seniors-api.rule=Host(`seniors.horacioai.com`) && PathPrefix(`/api`)"
@@ -40,6 +56,15 @@ services:
     restart: unless-stopped
     networks:
       - proxy
+    # ✅ AÑADIDO: Límites más ligeros para frontend
+    deploy:
+      resources:
+        limits:
+          memory: 512M          # Frontend necesita menos memoria
+          cpus: '0.5'
+        reservations:
+          memory: 64M
+          cpus: '0.1'
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.seniors.rule=Host(`seniors.horacioai.com`)"
