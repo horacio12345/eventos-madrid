@@ -85,8 +85,6 @@ services:
       - "traefik.http.routers.seniors.tls.certresolver=letsencrypt"
       - "traefik.http.routers.seniors.priority=50"
       - "traefik.http.services.seniors.loadbalancer.server.port=3000"
-      - "traefik.http.services.seniors-api.loadbalancer.server.timeout=600s"
-      - "traefik.http.routers.seniors-api.timeout=600s"
       - "traefik.http.middlewares.seniors-api-buffering.buffering.maxRequestBodyBytes=52428800"
       - "traefik.http.routers.seniors-api.middlewares=seniors-api-buffering"
 
