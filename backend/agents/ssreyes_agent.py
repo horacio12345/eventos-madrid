@@ -61,6 +61,9 @@ class SSReyesAgent:
         
         # INICIALIZAR NORMALIZADOR
         self.normalizer = EventNormalizer()
+
+        # ✅ NUEVO: Inicializar DocumentConverter UNA SOLA VEZ
+        self.converter = None  # Lazy loading para evitar import issues
         
         # Create prompt template
         self.extraction_prompt = PromptTemplate(
@@ -114,8 +117,13 @@ class SSReyesAgent:
                 pdf_absolute_path = pdf_url
             
             # Step 2: Extract PDF content
-            converter = DocumentConverter()
-            result = converter.convert(pdf_absolute_path)
+            if self.converter is None:
+                from docling.document_converter import DocumentConverter
+                self.converter = DocumentConverter()
+                if os.getenv('DEBUG', 'false').lower() == 'true':
+                    print(f"🔧 [SSReyes] DocumentConverter inicializado")
+
+            result = self.converter.convert(pdf_absolute_path)
             texto = result.document.export_to_markdown()
         
             
@@ -186,15 +194,7 @@ class SSReyesAgent:
                 "eventos": [],
                 "pdf_url": pdf_url
             }
-        finally:
-            # ✅ LÍNEA AÑADIDA 2/3 - Cleanup automático después de cada PDF
-            try:
-                if hasattr(self, 'llm'):
-                    del self.llm
-                gc.collect()
-                print(f"🧹 [SSReyes] Memory cleaned after extraction")
-            except:
-                pass
+
 
     def save_eventos_to_db_deduped(self, eventos: List[Dict], pdf_url: str) -> Dict:
         """

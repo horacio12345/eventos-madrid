@@ -1,4 +1,4 @@
-# Backend Requirements - Solo lo esencial
+# Backend Requirements - VERSIÓN FINAL SIN VERSIONES FIJAS
 
 # Framework web
 fastapi
@@ -16,11 +16,21 @@ langchain-openai
 langchain-anthropic
 langgraph
 
-# Document processing
+# ✅ Document processing optimizado
 docling
 pymupdf
 python-docx
 openpyxl
+
+# ✅ Computer Vision (headless para contenedores)
+opencv-python-headless
+pillow
+numpy
+
+# ✅ Dependencias adicionales para procesamiento
+pdfplumber
+PyPDF2
+pytesseract
 
 # Web scraping
 playwright
@@ -34,6 +44,10 @@ python-dotenv
 python-jose[cryptography]
 passlib[bcrypt]
 PyYAML
+
+# ✅ Gestión de memoria
+psutil
+memory-profiler
 
 # Production
 gunicorn

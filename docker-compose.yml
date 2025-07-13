@@ -10,19 +10,38 @@ services:
     environment:
       - ENVIRONMENT=production
       - DATABASE_URL=sqlite:///./data/database.db
+      # ✅ NUEVO: Variables específicas para Docling optimizado
+      - DOCLING_CACHE_DIR=/root/.cache/docling
+      - OPENCV_OPENCL_DEVICE=disabled
+      - OMP_NUM_THREADS=2
+      # ✅ NUEVO: Optimizaciones de memoria
+      - MALLOC_TRIM_THRESHOLD_=131072
+      - MALLOC_MMAP_THRESHOLD_=131072
     volumes:
       - ./data:/app/data
       - ./backend/api/data/uploads:/app/backend/api/data/uploads
       - docling-cache:/root/.cache/docling
+      # ✅ NUEVO: Cache de HuggingFace persistente
+      - huggingface-cache:/root/.cache/huggingface
     restart: unless-stopped
     networks:
       - proxy
+    # ✅ NUEVO: Límites de recursos específicos para Docling
+    deploy:
+      resources:
+        limits:
+          memory: 4G        # Docling necesita mucha memoria
+          cpus: '2'
+        reservations:
+          memory: 1G        # Mínimo garantizado
+          cpus: '0.5'
+    # ✅ MEJORADO: Healthcheck más permisivo para Docling
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8000/api/health || exit 1"]
-      interval: 60s
-      timeout: 10s
+      interval: 120s       # Más tiempo entre checks
+      timeout: 30s         # Timeout más largo
       retries: 3
-      start_period: 40s
+      start_period: 180s    # Más tiempo para que Docling se inicie
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.seniors-api.rule=Host(`seniors.horacioai.com`) && PathPrefix(`/api`)"
@@ -30,6 +49,12 @@ services:
       - "traefik.http.routers.seniors-api.tls.certresolver=letsencrypt"
       - "traefik.http.routers.seniors-api.priority=100"
       - "traefik.http.services.seniors-api.loadbalancer.server.port=8000"
+      # ✅ NUEVO: Timeouts extendidos para procesamiento PDF largo
+      - "traefik.http.services.seniors-api.loadbalancer.server.timeout=300s"
+      - "traefik.http.routers.seniors-api.timeout=300s"
+      # ✅ NUEVO: Configuración adicional de Traefik para requests grandes
+      - "traefik.http.middlewares.seniors-api-buffering.buffering.maxRequestBodyBytes=52428800"
+      - "traefik.http.routers.seniors-api.middlewares=seniors-api-buffering"
 
   # ============= FRONTEND NEXT.JS =============
   frontend:
@@ -64,6 +89,10 @@ services:
 # ============= VOLÚMENES =============
 volumes:
   docling-cache:
+    driver: local
+  # ✅ NUEVO: Cache persistente para modelos de HuggingFace
+  huggingface-cache:
+    driver: local
 
 # ============= REDES =============
 networks:
