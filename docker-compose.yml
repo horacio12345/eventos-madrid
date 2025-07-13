@@ -49,10 +49,6 @@ services:
       - "traefik.http.routers.seniors-api.tls.certresolver=letsencrypt"
       - "traefik.http.routers.seniors-api.priority=100"
       - "traefik.http.services.seniors-api.loadbalancer.server.port=8000"
-      # ✅ NUEVO: Timeouts extendidos para procesamiento PDF largo
-      - "traefik.http.services.seniors-api.loadbalancer.server.timeout=600s"
-      - "traefik.http.routers.seniors-api.timeout=600s"
-      # ✅ NUEVO: Configuración adicional de Traefik para requests grandes
       - "traefik.http.middlewares.seniors-api-buffering.buffering.maxRequestBodyBytes=52428800"
       - "traefik.http.routers.seniors-api.middlewares=seniors-api-buffering"
 
@@ -87,6 +83,9 @@ services:
       - "traefik.http.services.seniors.loadbalancer.server.port=3000"
       - "traefik.http.middlewares.seniors-api-buffering.buffering.maxRequestBodyBytes=52428800"
       - "traefik.http.routers.seniors-api.middlewares=seniors-api-buffering"
+      - "traefik.http.routers.seniors-api.service=seniors-api"
+      - "traefik.http.services.seniors-api.loadbalancer.server.scheme=http"
+      - "traefik.http.services.seniors-api.loadbalancer.responseforwarding.flushinterval=1s"
 
 # ============= VOLÚMENES =============
 volumes:
