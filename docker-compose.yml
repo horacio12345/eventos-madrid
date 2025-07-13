@@ -33,13 +33,13 @@ services:
           memory: 4G        # Docling necesita mucha memoria
           cpus: '2'
         reservations:
-          memory: 1G        # Mínimo garantizado
-          cpus: '0.5'
+          memory: 1.5G        # Mínimo garantizado
+          cpus: '1'
     # ✅ MEJORADO: Healthcheck más permisivo para Docling
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8000/api/health || exit 1"]
-      interval: 120s       # Más tiempo entre checks
-      timeout: 30s         # Timeout más largo
+      interval: 180s       # Más tiempo entre checks
+      timeout: 90s         # Timeout más largo
       retries: 3
       start_period: 180s    # Más tiempo para que Docling se inicie
     labels:
@@ -50,8 +50,8 @@ services:
       - "traefik.http.routers.seniors-api.priority=100"
       - "traefik.http.services.seniors-api.loadbalancer.server.port=8000"
       # ✅ NUEVO: Timeouts extendidos para procesamiento PDF largo
-      - "traefik.http.services.seniors-api.loadbalancer.server.timeout=300s"
-      - "traefik.http.routers.seniors-api.timeout=300s"
+      - "traefik.http.services.seniors-api.loadbalancer.server.timeout=600s"
+      - "traefik.http.routers.seniors-api.timeout=600s"
       # ✅ NUEVO: Configuración adicional de Traefik para requests grandes
       - "traefik.http.middlewares.seniors-api-buffering.buffering.maxRequestBodyBytes=52428800"
       - "traefik.http.routers.seniors-api.middlewares=seniors-api-buffering"
@@ -73,11 +73,11 @@ services:
     deploy:
       resources:
         limits:
-          memory: 1G
+          memory: 2G
           cpus: '1'
         reservations:
-          memory: 256M
-          cpus: '0.25'
+          memory: 512M
+          cpus: '0.5'
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.seniors.rule=Host(`seniors.horacioai.com`)"
